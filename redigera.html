@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Redigera lanterna — Lanternor över Tjörn</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css"/>
+<link rel="stylesheet" href="css/style.css"/>
+<style>
+.edit-wrap{max-width:600px;margin:3rem auto;padding:0 1.5rem;}
+.edit-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;}
+.edit-head{padding:1.5rem 1.75rem;border-bottom:1px solid var(--border);}
+.edit-head h1{font-family:var(--font-display);font-size:1.6rem;margin-bottom:0.25rem;}
+.edit-head p{font-size:0.85rem;color:var(--text-mid);}
+.edit-body{padding:1.75rem;}
+.edit-foot{padding:1rem 1.75rem;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;}
+.state-loading,.state-error,.state-success{padding:3rem;text-align:center;color:var(--text-mid);}
+.state-error{color:var(--danger);}
+.state-success h2{font-family:var(--font-display);font-size:1.4rem;margin-bottom:0.5rem;color:var(--success);}
+#edit-map{height:200px;border-radius:var(--radius);border:1px solid var(--border);overflow:hidden;margin-top:6px;}
+</style>
+</head>
+<body style="background:var(--bg);font-family:var(--font-body);color:var(--text);">
+
+<nav>
+  <a class="logo" href="/">
+    <div class="logo-mark">
+      <svg viewBox="0 0 28 28" fill="none">
+        <circle cx="14" cy="14" r="6" fill="#d4840a"/>
+        <circle cx="14" cy="14" r="10" stroke="#d4840a" stroke-width="1" stroke-dasharray="3 2.5" fill="none"/>
+        <circle cx="14" cy="14" r="13" stroke="#e8c87a" stroke-width="0.5" fill="none"/>
+      </svg>
+    </div>
+    <span class="logo-name">Lanternor över Tjörn</span>
+  </a>
+</nav>
+
+<div class="edit-wrap">
+  <div class="edit-card" id="edit-card">
+    <div class="state-loading" id="state-loading">
+      <div class="spinner"></div>
+      Hämtar din lanterna…
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script>
+let lanterna = null;
+let editMap = null;
+let editMarker = null;
+let editLat = null;
+let editLng = null;
+
+const token = new URLSearchParams(window.location.search).get('token');
+
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + (type || '');
+  setTimeout(() => t.className = 'toast', 3500);
+}
+
+async function init() {
+  if (!token) {
+    showError('Ingen redigeringslänk hittades. Kontrollera länken i ditt e-postmeddelande.');
+    return;
+  }
+
+  const { data, error } = await sb
+    .from('lanternor')
+    .select('*')
+    .eq('edit_token', token)
+    .single();
+
+  if (error || !data) {
+    showError('Lanternan hittades inte. Länken kan vara felaktig eller ha gått ut.');
+    return;
+  }
+
+  lanterna = data;
+  editLat = data.lat;
+  editLng = data.lng;
+  renderForm();
+}
+
+function showError(msg) {
+  document.getElementById('edit-card').innerHTML =
+    '<div class="state-error"><p>' + msg + '</p><br><a href="/" style="color:var(--amber);">← Tillbaka till kartan</a></div>';
+}
+
+function renderForm() {
+  const inriktningar = lanterna.inriktningar || [];
+  const opts = ['boende','laddstation','byteshylla','rastplats','väntplats','odling','kultur','energi'];
+  const labels = {
+    boende:'Boende', laddstation:'Laddstation', byteshylla:'Byteshylla',
+    rastplats:'Rastplats', väntplats:'Väntplats', odling:'Odling',
+    kultur:'Kultur & evenemang', energi:'Energidelning'
+  };
+
+  document.getElementById('edit-card').innerHTML =
+    '<div class="edit-head">' +
+      '<h1>' + lanterna.namn + '</h1>' +
+      '<p>' + lanterna.plats + ' · Redigera din lanterna nedan</p>' +
+    '</div>' +
+    '<div class="edit-body">' +
+      '<div class="form-group">' +
+        '<label class="form-label">Namn <span style="color:var(--danger)">*</span></label>' +
+        '<input type="text" id="e-namn" value="' + esc(lanterna.namn) + '"/>' +
+      '</div>' +
+      '<div class="form-group">' +
+        '<label class="form-label">Beskrivning</label>' +
+        '<textarea id="e-beskr">' + esc(lanterna.beskrivning || '') + '</textarea>' +
+      '</div>' +
+      '<div class="form-group">' +
+        '<label class="form-label">Plats / område <span style="color:var(--danger)">*</span></label>' +
+        '<input type="text" id="e-plats" value="' + esc(lanterna.plats) + '"/>' +
+      '</div>' +
+      '<div class="form-group">' +
+        '<label class="form-label">Placering på kartan</label>' +
+        '<div id="edit-map"></div>' +
+        '<div class="pick-hint" id="edit-hint">Klicka på kartan för att flytta lanternan</div>' +
+      '</div>' +
+      '<div class="form-row2">' +
+        '<div class="form-group">' +
+          '<label class="form-label">Max antal platser <span style="color:var(--danger)">*</span></label>' +
+          '<input type="number" id="e-spots" min="1" max="999" value="' + lanterna.max_platser + '"/>' +
+        '</div>' +
+      '</div>' +
+      '<div class="form-group">' +
+        '<label class="form-label">Inriktning</label>' +
+        '<div class="checkbox-grid">' +
+          opts.map(v =>
+            '<label class="cb-item"><input type="checkbox" value="' + v + '"' +
+            (inriktningar.includes(v) ? ' checked' : '') + '> ' + labels[v] + '</label>'
+          ).join('') +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="edit-foot">' +
+      '<a href="/" class="btn-cancel" style="text-decoration:none;display:inline-flex;align-items:center;">← Tillbaka</a>' +
+      '<button class="btn-primary" onclick="saveChanges()">Spara ändringar</button>' +
+    '</div>';
+
+  // Init karta
+  setTimeout(() => {
+    editMap = L.map('edit-map', { zoomControl: true }).setView([editLat || 57.98, editLng || 11.64], 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap', maxZoom: 19
+    }).addTo(editMap);
+
+    if (editLat && editLng) {
+      editMarker = L.marker([editLat, editLng]).addTo(editMap);
+    }
+
+    editMap.on('click', e => {
+      editLat = parseFloat(e.latlng.lat.toFixed(6));
+      editLng = parseFloat(e.latlng.lng.toFixed(6));
+      if (editMarker) editMap.removeLayer(editMarker);
+      editMarker = L.marker([editLat, editLng]).addTo(editMap);
+      document.getElementById('edit-hint').textContent = 'Markerat: ' + editLat + ', ' + editLng;
+      document.getElementById('edit-hint').className = 'pick-hint picked';
+    });
+  }, 100);
+}
+
+async function saveChanges() {
+  const namn = document.getElementById('e-namn').value.trim();
+  const plats = document.getElementById('e-plats').value.trim();
+  const spots = parseInt(document.getElementById('e-spots').value);
+  if (!namn || !plats || !spots) {
+    showToast('Fyll i namn, plats och antal platser.', 'error');
+    return;
+  }
+
+  const inriktningar = [...document.querySelectorAll('.checkbox-grid input:checked')]
+    .map(cb => cb.value);
+
+  const btn = document.querySelector('.btn-primary');
+  btn.disabled = true;
+  btn.textContent = 'Sparar…';
+
+  const { error } = await sb.from('lanternor').update({
+    namn,
+    plats,
+    beskrivning: document.getElementById('e-beskr').value.trim() || null,
+    max_platser: spots,
+    inriktningar,
+    lat: editLat,
+    lng: editLng
+  }).eq('edit_token', token);
+
+  btn.disabled = false;
+  btn.textContent = 'Spara ändringar';
+
+  if (error) {
+    showToast('Fel: ' + error.message, 'error');
+    return;
+  }
+
+  showToast('Ändringarna är sparade!', 'success');
+  document.getElementById('edit-card').querySelector('.edit-head p').textContent = plats + ' · Ändringar sparade';
+}
+
+function esc(str) {
+  return str.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+init();
+</script>
+</body>
+</html>
