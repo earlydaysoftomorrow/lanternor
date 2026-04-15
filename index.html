@@ -1,167 +1,163 @@
 <!DOCTYPE html>
 <html lang="sv">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Lanternor över Tjörn - energigemenskaper i lokalsamhället</title>
-
-  <!-- Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
-
-  <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css"/>
-
-  <!-- App styles -->
-  <link rel="stylesheet" href="css/style.css"/>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Lanternor över Tjörn</title>
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css"/>
+<!-- App styles -->
+<link rel="stylesheet" href="css/style.css"/>
 </head>
 <body>
 
 <!-- ─── Nav ──────────────────────────────────────────────── -->
 <nav>
-  <a class="logo" href="#">
-    <div class="logo-mark">
-      <svg viewBox="0 0 28 28" fill="none">
-        <circle cx="14" cy="14" r="6" fill="#d4840a"/>
-        <circle cx="14" cy="14" r="10" stroke="#d4840a" stroke-width="1" stroke-dasharray="3 2.5" fill="none"/>
-        <circle cx="14" cy="14" r="13" stroke="#e8c87a" stroke-width="0.5" fill="none"/>
-      </svg>
-    </div>
-    <span class="logo-name">Lanternor över Tjörn</span>
-  </a>
-  <button class="btn-new" onclick="openCreate()">+ Ny lanterna</button>
+<a class="logo" href="#">
+<div class="logo-mark">
+<svg viewBox="0 0 28 28" fill="none">
+<circle cx="14" cy="14" r="6" fill="#d4840a"/>
+<circle cx="14" cy="14" r="10" stroke="#d4840a" stroke-width="1" stroke-dasharray="3 2.5" fill="none"/>
+<circle cx="14" cy="14" r="13" stroke="#e8c87a" stroke-width="0.5" fill="none"/>
+</svg>
+</div>
+<span class="logo-name">Tjörns lysande energigemenskaper</span>
+</a>
+<button class="btn-new" onclick="openCreate()">+ Ny lanterna</button>
 </nav>
+
+<!-- ─── Info-meny ────────────────────────────────────────── -->
+<div class="info-nav">
+  <a class="info-link" href="#bakgrund">Bakgrund</a>
+  <a class="info-link" href="#varfor">Varför</a>
+  <a class="info-link" href="#om-energigemenskaper">Om energigemenskaper</a>
+  <a class="info-link" href="#berattelser">Berättelser</a>
+  <a class="info-link" href="#delta">Såhär kan du delta</a>
+</div>
 
 <!-- ─── Hero ─────────────────────────────────────────────── -->
 <div class="hero">
-  <div class="hero-inner">
-    <div class="hero-eyebrow">Energigemenskaper för gemenskap och resiliens</div>
-    <h1>Skulpturer som <em>lyser upp</em> lokalsamhället</h1>
-    <p class="hero-sub">En plattform för energigemenskaper kring energigenererande skulpturer — platser där grannar möts, resurser delas och ny gemenskap uppstår.</p>
-    <div class="stats-row">
-      <div><div class="stat-num" id="s-total">—</div><div class="stat-lbl">Lanternor</div></div>
-      <div><div class="stat-num" id="s-members">—</div><div class="stat-lbl">Anmälda</div></div>
-      <div><div class="stat-num" id="s-spots">—</div><div class="stat-lbl">Lediga platser</div></div>
-    </div>
-  </div>
+<div class="hero-inner">
+<div class="hero-eyebrow">Energigemenskap</div>
+<h1>Lanternor över <em>Tjörn</em></h1>
+<p class="hero-sub">En plattform för energigemenskaper kring energigenererande skulpturer — platser där grannar möts, resurser delas och ny gemenskap uppstår.</p>
+<div class="stats-row">
+<div><div class="stat-num" id="s-total">—</div><div class="stat-lbl">Lanternor</div></div>
+<div><div class="stat-num" id="s-members">—</div><div class="stat-lbl">Anmälda</div></div>
+<div><div class="stat-num" id="s-spots">—</div><div class="stat-lbl">Lediga platser</div></div>
+</div>
+</div>
 </div>
 
 <!-- ─── Main: map + sidebar ──────────────────────────────── -->
 <div class="main">
-
-  <div class="map-panel">
-    <div id="map"></div>
-  </div>
-
-  <div class="sidebar">
-    <div class="sidebar-header">
-      <div class="sidebar-title">Lanternor i nätverket</div>
-    </div>
-    <div class="filter-row">
-      <button class="chip active" onclick="setFilter('alla', this)">Alla</button>
-      <button class="chip" onclick="setFilter('boende', this)">Boende</button>
-      <button class="chip" onclick="setFilter('laddstation', this)">Laddning</button>
-      <button class="chip" onclick="setFilter('byteshylla', this)">Byteshylla</button>
-      <button class="chip" onclick="setFilter('rastplats', this)">Rastplats</button>
-      <button class="chip" onclick="setFilter('väntplats', this)">Väntplats</button>
-      <button class="chip" onclick="setFilter('lediga', this)">Lediga</button>
-    </div>
-    <div class="lantern-list" id="lantern-list">
-      <div class="loading">
-        <div class="spinner"></div>
-        Hämtar lanternor…
-      </div>
-    </div>
-  </div>
-
+<div class="map-panel">
+<div id="map"></div>
+</div>
+<div class="sidebar">
+<div class="sidebar-header">
+<div class="sidebar-title">Lanternor i nätverket</div>
+</div>
+<div class="filter-row">
+<button class="chip active" onclick="setFilter('alla', this)">Alla</button>
+<button class="chip" onclick="setFilter('boende', this)">Boende</button>
+<button class="chip" onclick="setFilter('laddstation', this)">Laddning</button>
+<button class="chip" onclick="setFilter('byteshylla', this)">Byteshylla</button>
+<button class="chip" onclick="setFilter('rastplats', this)">Rastplats</button>
+<button class="chip" onclick="setFilter('väntplats', this)">Väntplats</button>
+<button class="chip" onclick="setFilter('lediga', this)">Lediga</button>
+</div>
+<div class="lantern-list" id="lantern-list">
+<div class="loading">
+<div class="spinner"></div>
+H mtar lanternor…
+</div>
+</div>
+</div>
 </div>
 
 <!-- ─── Modal: Skapa ny lanterna ─────────────────────────── -->
 <div class="overlay" id="create-overlay">
-  <div class="modal">
-    <div class="modal-head">
-      <h2>Skapa ny lanterna</h2>
-      <button class="modal-close" onclick="closeCreate()">×</button>
-    </div>
-    <div class="modal-body">
-
-      <div class="form-group">
-        <label class="form-label">Namn på lanternan <span>*</span></label>
-        <input type="text" id="f-namn" placeholder="t.ex. Sollanternan i Haga"/>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">Beskrivning</label>
-        <textarea id="f-beskr" placeholder="Beskriv gemenskapens syfte och vision…"></textarea>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">Plats / område <span>*</span></label>
-        <input type="text" id="f-plats" placeholder="t.ex. Haga, Göteborg"/>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">Markera platsen på kartan <span>*</span></label>
-        <div id="pick-map"></div>
-        <div class="pick-hint" id="pick-hint">Klicka på kartan för att placera lanternan</div>
-      </div>
-
-      <div class="form-row2">
-        <div class="form-group">
-          <label class="form-label">Max antal platser <span>*</span></label>
-          <input type="number" id="f-spots" min="1" max="999" placeholder="20"/>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Din e-post <span>*</span></label>
-          <input type="email" id="f-email" placeholder="du@exempel.se"/>
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">Inriktning</label>
-        <div class="checkbox-grid">
-          <label class="cb-item"><input type="checkbox" value="boende"> Boende</label>
-          <label class="cb-item"><input type="checkbox" value="laddstation"> Laddstation</label>
-          <label class="cb-item"><input type="checkbox" value="byteshylla"> Byteshylla</label>
-          <label class="cb-item"><input type="checkbox" value="rastplats"> Rastplats</label>
-          <label class="cb-item"><input type="checkbox" value="väntplats"> Väntplats</label>
-          <label class="cb-item"><input type="checkbox" value="odling"> Odling</label>
-          <label class="cb-item"><input type="checkbox" value="kultur"> Kultur & evenemang</label>
-          <label class="cb-item"><input type="checkbox" value="energi"> Energidelning</label>
-        </div>
-      </div>
-
-    </div>
-    <div class="modal-foot">
-      <button class="btn-cancel" onclick="closeCreate()">Avbryt</button>
-      <button class="btn-primary" id="btn-submit" onclick="submitCreate()">Publicera lanterna</button>
-    </div>
-  </div>
+<div class="modal">
+<div class="modal-head">
+<h2>Skapa ny lanterna</h2>
+<button class="modal-close" onclick="closeCreate()">×</button>
+</div>
+<div class="modal-body">
+<div class="form-group">
+<label class="form-label">Namn på lanternan <span>*</span></label>
+<input type="text" id="f-namn" placeholder="t.ex. Sollanternan i Haga"/>
+</div>
+<div class="form-group">
+<label class="form-label">Beskrivning</label>
+<textarea id="f-beskr" placeholder="Beskriv gemenskapens syfte och vision…"></textarea>
+</div>
+<div class="form-group">
+<label class="form-label">Plats / område <span>*</span></label>
+<input type="text" id="f-plats" placeholder="t.ex. Haga, Göteborg"/>
+</div>
+<div class="form-group">
+<label class="form-label">Markera platsen på kartan <span>*</span></label>
+<div id="pick-map"></div>
+<div class="pick-hint" id="pick-hint">Klicka på kartan för att placera lanternan</div>
+</div>
+<div class="form-row2">
+<div class="form-group">
+<label class="form-label">Max antal platser <span>*</span></label>
+<input type="number" id="f-spots" min="1" max="999" placeholder="20"/>
+</div>
+<div class="form-group">
+<label class="form-label">Din e-post <span>*</span></label>
+<input type="email" id="f-email" placeholder="du@exempel.se"/>
+</div>
+</div>
+<div class="form-group">
+<label class="form-label">Inriktning</label>
+<div class="checkbox-grid">
+<label class="cb-item"><input type="checkbox" value="boende"> Boende</label>
+<label class="cb-item"><input type="checkbox" value="laddstation"> Laddstation</label>
+<label class="cb-item"><input type="checkbox" value="byteshylla"> Byteshylla</label>
+<label class="cb-item"><input type="checkbox" value="rastplats"> Rastplats</label>
+<label class="cb-item"><input type="checkbox" value="väntplats"> Väntplats</label>
+<label class="cb-item"><input type="checkbox" value="odling"> Odling</label>
+<label class="cb-item"><input type="checkbox" value="kultur"> Kultur & evenemang</label>
+<label class="cb-item"><input type="checkbox" value="energi"> Energidelning</label>
+</div>
+</div>
+</div>
+<div class="modal-foot">
+<button class="btn-cancel" onclick="closeCreate()">Avbryt</button>
+<button class="btn-primary" id="btn-submit" onclick="submitCreate()">Publicera lanterna</button>
+</div>
+</div>
 </div>
 
 <!-- ─── Modal: Anmäl dig ──────────────────────────────────── -->
 <div class="overlay" id="join-overlay">
-  <div class="modal" style="max-width: 420px;">
-    <div class="modal-head">
-      <h2 id="join-title">Anmäl dig</h2>
-      <button class="modal-close" onclick="closeJoin()">×</button>
-    </div>
-    <div class="modal-body">
-      <p id="join-desc" style="font-size: 0.84rem; color: var(--text-mid); margin-bottom: 1rem;"></p>
-      <div class="form-group">
-        <label class="form-label">Ditt namn</label>
-        <input type="text" id="j-namn" placeholder="Förnamn Efternamn"/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">E-postadress <span>*</span></label>
-        <input type="email" id="j-email" placeholder="du@exempel.se"/>
-      </div>
-    </div>
-    <div class="modal-foot">
-      <button class="btn-cancel" onclick="closeJoin()">Avbryt</button>
-      <button class="btn-primary" id="btn-join-submit" onclick="submitJoin()">Anmäl mig</button>
-    </div>
-  </div>
+<div class="modal" style="max-width: 420px;">
+<div class="modal-head">
+<h2 id="join-title">Anmäl dig</h2>
+<button class="modal-close" onclick="closeJoin()">×</button>
+</div>
+<div class="modal-body">
+<p id="join-desc" style="font-size: 0.84rem; color: var(--text-mid); margin-bottom: 1rem;"></p>
+<div class="form-group">
+<label class="form-label">Ditt namn</label>
+<input type="text" id="j-namn" placeholder="Förnamn Efternamn"/>
+</div>
+<div class="form-group">
+<label class="form-label">E-postadress <span>*</span></label>
+<input type="email" id="j-email" placeholder="du@exempel.se"/>
+</div>
+</div>
+<div class="modal-foot">
+<button class="btn-cancel" onclick="closeJoin()">Avbryt</button>
+<button class="btn-primary" id="btn-join-submit" onclick="submitJoin()">Anmäl mig</button>
+</div>
+</div>
 </div>
 
 <!-- ─── Toast ─────────────────────────────────────────────── -->
