@@ -3,13 +3,10 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Lanternor över Tjörn</title>
-<!-- Fonts -->
+<title>Lanternan — Energigemenskaper</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
-<!-- Leaflet CSS -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css"/>
-<!-- App styles -->
 <link rel="stylesheet" href="css/style.css"/>
 </head>
 <body>
@@ -24,18 +21,57 @@
 <circle cx="14" cy="14" r="13" stroke="#e8c87a" stroke-width="0.5" fill="none"/>
 </svg>
 </div>
-<span class="logo-name">Tillsammans bygger vi lysande energigemenskaper över Tjörn för beredskap och gemenskap</span>
+<span class="logo-name">Lanternan</span>
 </a>
 <button class="btn-new" onclick="openCreate()">+ Ny lanterna</button>
 </nav>
 
 <!-- ─── Info-meny ────────────────────────────────────────── -->
 <div class="info-nav">
-  <a class="info-link" href="#bakgrund">Bakgrund</a>
-  <a class="info-link" href="#varfor">Varför</a>
-  <a class="info-link" href="#om-energigemenskaper">Om energigemenskaper</a>
-  <a class="info-link" href="#berattelser">Berättelser</a>
-  <a class="info-link" href="#delta">Såhär kan du delta</a>
+  <button class="info-link" onclick="toggleDrawer('bakgrund')">Bakgrund</button>
+  <button class="info-link" onclick="toggleDrawer('varfor')">Varför</button>
+  <button class="info-link" onclick="toggleDrawer('om')">Om energigemenskaper</button>
+  <button class="info-link" onclick="toggleDrawer('berattelser')">Berättelser</button>
+  <button class="info-link" onclick="toggleDrawer('delta')">Såhär kan du delta</button>
+</div>
+
+<!-- ─── Info-drawer ───────────────────────────────────────── -->
+<div class="info-drawer" id="info-drawer">
+  <div class="drawer-content" id="drawer-bakgrund">
+    <div class="drawer-text">
+      <h3>Bakgrund</h3>
+      <p>Lanternan växte fram ur en önskan att göra energiomställningen lokal och meningsfull. Istället för att energi är något abstrakt och avlägset kan skulpturerna bli synliga, levande noder i ett lokalt energinätverk.</p>
+    </div>
+    <a class="drawer-link" href="bakgrund.html">Läs mer →</a>
+  </div>
+  <div class="drawer-content" id="drawer-varfor">
+    <div class="drawer-text">
+      <h3>Varför</h3>
+      <p>Lokalsamhällen som organiserar sin energiproduktion och konsumtion gemensamt är mer resilienta, mer rättvisa och mer engagerande. Lanternan är ett verktyg för att göra det möjligt — utan att det kräver expertkunskap.</p>
+    </div>
+    <a class="drawer-link" href="varfor.html">Läs mer →</a>
+  </div>
+  <div class="drawer-content" id="drawer-om">
+    <div class="drawer-text">
+      <h3>Om energigemenskaper</h3>
+      <p>En energigemenskap är en grupp människor som gemensamt äger, förvaltar och delar energiresurser. Det kan handla om solceller på ett tak, ett batteri i ett garage eller — som här — en energigenererande skulptur på ett torg.</p>
+    </div>
+    <a class="drawer-link" href="energigemenskaper.html">Läs mer →</a>
+  </div>
+  <div class="drawer-content" id="drawer-berattelser">
+    <div class="drawer-text">
+      <h3>Berättelser</h3>
+      <p>Här samlar vi röster från människor som är en del av Lanternans nätverk — de som skapade en gemenskap, de som anslöt sig och de som förändrade sin vardag genom en skulptur på sin gata.</p>
+    </div>
+    <a class="drawer-link" href="berattelser.html">Läs mer →</a>
+  </div>
+  <div class="drawer-content" id="drawer-delta">
+    <div class="drawer-text">
+      <h3>Såhär kan du delta</h3>
+      <p>Du kan delta på två sätt: antingen ansluta dig till en befintlig lanterna nära dig, eller starta en ny gemenskap kring en skulptur du känner till. Båda sätten kräver bara din e-postadress för att komma igång.</p>
+    </div>
+    <a class="drawer-link" href="#" onclick="openCreate(); closeDrawer(); return false;">Skapa ny lanterna →</a>
+  </div>
 </div>
 
 <!-- ─── Hero ─────────────────────────────────────────────── -->
@@ -163,7 +199,7 @@ H mtar lanternor…
 <!-- ─── Toast ─────────────────────────────────────────────── -->
 <div class="toast" id="toast"></div>
 
-<!-- ─── Scripts (load order matters) ─────────────────────── -->
+<!-- ─── Scripts ───────────────────────────────────────────── -->
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
@@ -172,6 +208,37 @@ H mtar lanternor…
 <script src="js/create.js"></script>
 <script src="js/join.js"></script>
 <script src="js/app.js"></script>
+
+<script>
+let activeDrawer = null;
+
+function toggleDrawer(id) {
+  const drawer = document.getElementById('info-drawer');
+  const buttons = document.querySelectorAll('.info-link');
+
+  if (activeDrawer === id) {
+    closeDrawer();
+    return;
+  }
+
+  document.querySelectorAll('.drawer-content').forEach(el => el.style.display = 'none');
+  document.getElementById('drawer-' + id).style.display = 'flex';
+
+  buttons.forEach(b => b.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+
+  drawer.classList.add('open');
+  activeDrawer = id;
+}
+
+function closeDrawer() {
+  document.getElementById('info-drawer').classList.remove('open');
+  document.querySelectorAll('.info-link').forEach(b => b.classList.remove('active'));
+  activeDrawer = null;
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
+</script>
 
 </body>
 </html>
