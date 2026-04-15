@@ -1,136 +1,23 @@
 <!DOCTYPE html>
 <html lang="sv">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Lanternan — Energigemenskaper</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css"/>
-<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style>
-*{margin:0;padding:0;box-sizing:border-box;}
-:root{
-  --stone:#1c1b19;
-  --bg:#f7f5f0;
-  --bg-card:#ffffff;
-  --border:#e2ddd5;
-  --border-mid:#c8c2b8;
-  --amber:#d4840a;
-  --amber-light:#fef3dc;
-  --text:#1c1b19;
-  --text-mid:#5a5750;
-  --text-light:#9a948a;
-  --success:#2d6a4f;
-  --success-bg:#d8f3dc;
-  --danger:#c1121f;
-  --danger-bg:#ffe5e5;
-  --font-display:'DM Serif Display',serif;
-  --font-body:'DM Sans',sans-serif;
-  --radius:8px;
-  --radius-lg:14px;
-}
-html,body{height:100%;font-family:var(--font-body);background:var(--bg);color:var(--text);}
-nav{display:flex;align-items:center;justify-content:space-between;padding:0 2rem;height:56px;background:var(--bg-card);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:1000;}
-.logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--text);}
-.logo-mark svg{width:28px;height:28px;}
-.logo-name{font-family:var(--font-display);font-size:1.15rem;letter-spacing:-0.01em;}
-.btn-new{padding:7px 16px;font-size:0.82rem;font-weight:500;background:var(--stone);color:#fff;border:none;border-radius:var(--radius);cursor:pointer;font-family:var(--font-body);transition:opacity 0.15s;}
-.btn-new:hover{opacity:0.85;}
-.hero{padding:2.25rem 2rem 1.75rem;border-bottom:1px solid var(--border);background:var(--bg-card);}
-.hero-inner{max-width:780px;}
-.hero-eyebrow{font-size:0.72rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-light);margin-bottom:0.6rem;display:flex;align-items:center;gap:8px;}
-.hero-eyebrow::before{content:'';width:24px;height:1px;background:var(--border-mid);}
-.hero h1{font-family:var(--font-display);font-size:clamp(1.7rem,4vw,2.7rem);line-height:1.1;letter-spacing:-0.02em;margin-bottom:0.6rem;}
-.hero h1 em{font-style:italic;color:var(--text-mid);}
-.hero-sub{font-size:0.9rem;color:var(--text-mid);line-height:1.65;max-width:520px;}
-.stats-row{display:flex;gap:2rem;margin-top:1.25rem;padding-top:1.1rem;border-top:1px solid var(--border);}
-.stat-num{font-family:var(--font-display);font-size:1.6rem;line-height:1;}
-.stat-lbl{font-size:0.68rem;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-light);margin-top:2px;}
-.main{display:grid;grid-template-columns:1fr 360px;height:calc(100vh - 56px - 162px);min-height:480px;}
-.map-panel{border-right:1px solid var(--border);overflow:hidden;}
-#map{width:100%;height:100%;}
-.lantern-marker{width:28px;height:28px;border-radius:50%;background:#d4840a;border:2.5px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.22);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform 0.15s;}
-.lantern-marker:hover{transform:scale(1.15);}
-.lantern-marker.full{background:#c1121f;}
-.leaflet-popup-content-wrapper{border-radius:12px!important;border:1px solid var(--border)!important;box-shadow:0 4px 20px rgba(0,0,0,0.1)!important;font-family:var(--font-body)!important;}
-.leaflet-popup-content{margin:12px 16px!important;font-family:var(--font-body);}
-.popup-name{font-weight:500;font-size:0.92rem;margin-bottom:2px;}
-.popup-loc{font-size:0.72rem;color:var(--text-light);margin-bottom:7px;}
-.popup-tags{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:7px;}
-.popup-tag{font-size:0.63rem;padding:2px 6px;border-radius:3px;background:var(--amber-light);color:#7a4a00;font-weight:500;}
-.popup-row{display:flex;align-items:center;justify-content:space-between;gap:8px;}
-.popup-spots{font-size:0.73rem;color:var(--text-mid);}
-.popup-btn{padding:5px 12px;font-size:0.72rem;font-weight:500;border:1px solid var(--stone);background:transparent;color:var(--stone);cursor:pointer;border-radius:var(--radius);font-family:var(--font-body);transition:all 0.15s;}
-.popup-btn:hover{background:var(--stone);color:#fff;}
-.popup-btn:disabled{opacity:0.35;cursor:not-allowed;}
-.sidebar{display:flex;flex-direction:column;overflow:hidden;}
-.sidebar-header{padding:1rem 1.25rem 0.6rem;border-bottom:1px solid var(--border);}
-.sidebar-title{font-size:0.77rem;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-mid);}
-.filter-row{display:flex;gap:5px;padding:0.6rem 1.25rem;border-bottom:1px solid var(--border);flex-wrap:wrap;}
-.chip{padding:3px 9px;font-size:0.68rem;border:1px solid var(--border);background:transparent;color:var(--text-mid);cursor:pointer;border-radius:20px;transition:all 0.12s;font-family:var(--font-body);}
-.chip.active{background:var(--stone);color:#fff;border-color:var(--stone);}
-.chip:hover:not(.active){background:#f0ebe3;}
-.lantern-list{overflow-y:auto;flex:1;}
-.l-card{padding:0.85rem 1.25rem;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.12s;}
-.l-card:hover{background:#faf8f4;}
-.l-card.highlighted{background:var(--amber-light);}
-.l-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:3px;}
-.l-name{font-size:0.88rem;font-weight:500;}
-.l-badge{font-size:0.63rem;padding:2px 7px;border-radius:20px;white-space:nowrap;flex-shrink:0;}
-.l-badge.ok{background:var(--success-bg);color:var(--success);}
-.l-badge.full{background:var(--danger-bg);color:var(--danger);}
-.l-loc{font-size:0.72rem;color:var(--text-light);margin-bottom:4px;}
-.l-desc{font-size:0.75rem;color:var(--text-mid);line-height:1.5;margin-bottom:5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-.l-tags{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:5px;}
-.l-tag{font-size:0.62rem;padding:2px 6px;border-radius:3px;background:var(--amber-light);color:#7a4a00;font-weight:500;}
-.l-footer{display:flex;align-items:center;justify-content:space-between;}
-.l-members{font-size:0.68rem;color:var(--text-light);}
-.btn-join{padding:4px 11px;font-size:0.7rem;font-weight:500;border:1px solid var(--stone);background:transparent;color:var(--stone);cursor:pointer;border-radius:var(--radius);font-family:var(--font-body);transition:all 0.15s;}
-.btn-join:hover:not(:disabled){background:var(--stone);color:#fff;}
-.btn-join:disabled{opacity:0.35;cursor:not-allowed;}
-.empty{padding:2rem;text-align:center;color:var(--text-light);font-size:0.82rem;}
-.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:2000;align-items:center;justify-content:center;padding:1rem;}
-.overlay.open{display:flex;}
-.modal{background:var(--bg-card);border-radius:var(--radius-lg);width:100%;max-width:560px;max-height:92vh;overflow-y:auto;border:1px solid var(--border);}
-.modal-head{padding:1.1rem 1.5rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg-card);z-index:1;}
-.modal-head h2{font-family:var(--font-display);font-size:1.2rem;}
-.modal-close{background:none;border:none;cursor:pointer;color:var(--text-light);font-size:1.4rem;line-height:1;padding:2px 6px;border-radius:4px;}
-.modal-close:hover{background:#f0ebe3;}
-.modal-body{padding:1.25rem 1.5rem;}
-.form-group{margin-bottom:0.9rem;}
-.form-label{display:block;font-size:0.76rem;font-weight:500;color:var(--text-mid);margin-bottom:4px;}
-.form-label span{color:var(--danger);}
-input[type=text],input[type=email],input[type=number],textarea,select{width:100%;padding:8px 11px;font-size:0.86rem;font-family:var(--font-body);border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);color:var(--text);transition:border-color 0.15s;}
-input:focus,textarea:focus,select:focus{outline:none;border-color:var(--stone);background:#fff;}
-textarea{resize:vertical;min-height:70px;line-height:1.5;}
-.form-row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-.checkbox-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
-.cb-item{display:flex;align-items:center;gap:7px;padding:6px 9px;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:background 0.12s;font-size:0.79rem;}
-.cb-item:hover{background:#faf8f4;}
-.cb-item input{width:14px;height:14px;cursor:pointer;accent-color:var(--stone);}
-#pick-map{height:200px;border-radius:var(--radius);border:1px solid var(--border);overflow:hidden;margin-top:6px;}
-.pick-hint{font-size:0.73rem;color:var(--text-light);margin-top:4px;}
-.pick-hint.picked{color:var(--success);font-weight:500;}
-.modal-foot{padding:1rem 1.5rem;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;}
-.btn-cancel{padding:7px 16px;font-size:0.81rem;border:1px solid var(--border);background:transparent;color:var(--text-mid);cursor:pointer;border-radius:var(--radius);font-family:var(--font-body);}
-.btn-cancel:hover{background:#f0ebe3;}
-.btn-primary{padding:7px 18px;font-size:0.81rem;font-weight:500;border:none;background:var(--stone);color:#fff;cursor:pointer;border-radius:var(--radius);font-family:var(--font-body);transition:opacity 0.15s;}
-.btn-primary:hover{opacity:0.85;}
-.btn-primary:disabled{opacity:0.45;cursor:not-allowed;}
-.toast{position:fixed;bottom:24px;right:24px;z-index:3000;background:var(--stone);color:#fff;padding:10px 17px;border-radius:var(--radius);font-size:0.82rem;font-weight:500;transform:translateY(80px);opacity:0;transition:all 0.3s;pointer-events:none;}
-.toast.show{transform:translateY(0);opacity:1;}
-.toast.success{background:var(--success);}
-.toast.error{background:var(--danger);}
-.loading{padding:2rem;text-align:center;color:var(--text-light);}
-.spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--stone);border-radius:50%;animation:spin 0.7s linear infinite;margin:0 auto 0.5rem;}
-@keyframes spin{to{transform:rotate(360deg);}}
-@media(max-width:768px){.main{grid-template-columns:1fr;height:auto;}#map{height:300px;}.sidebar{max-height:55vh;}.form-row2{grid-template-columns:1fr;}.stats-row{gap:1.25rem;}}
-</style>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lanternan — Energigemenskaper</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css"/>
+
+  <!-- App styles -->
+  <link rel="stylesheet" href="css/style.css"/>
 </head>
 <body>
 
+<!-- ─── Nav ──────────────────────────────────────────────── -->
 <nav>
   <a class="logo" href="#">
     <div class="logo-mark">
@@ -145,6 +32,7 @@ textarea{resize:vertical;min-height:70px;line-height:1.5;}
   <button class="btn-new" onclick="openCreate()">+ Ny lanterna</button>
 </nav>
 
+<!-- ─── Hero ─────────────────────────────────────────────── -->
 <div class="hero">
   <div class="hero-inner">
     <div class="hero-eyebrow">Energigemenskap</div>
@@ -158,26 +46,37 @@ textarea{resize:vertical;min-height:70px;line-height:1.5;}
   </div>
 </div>
 
+<!-- ─── Main: map + sidebar ──────────────────────────────── -->
 <div class="main">
-  <div class="map-panel"><div id="map"></div></div>
+
+  <div class="map-panel">
+    <div id="map"></div>
+  </div>
+
   <div class="sidebar">
-    <div class="sidebar-header"><div class="sidebar-title">Lanternor i nätverket</div></div>
+    <div class="sidebar-header">
+      <div class="sidebar-title">Lanternor i nätverket</div>
+    </div>
     <div class="filter-row">
-      <button class="chip active" onclick="setFilter('alla',this)">Alla</button>
-      <button class="chip" onclick="setFilter('boende',this)">Boende</button>
-      <button class="chip" onclick="setFilter('laddstation',this)">Laddning</button>
-      <button class="chip" onclick="setFilter('byteshylla',this)">Byteshylla</button>
-      <button class="chip" onclick="setFilter('rastplats',this)">Rastplats</button>
-      <button class="chip" onclick="setFilter('väntplats',this)">Väntplats</button>
-      <button class="chip" onclick="setFilter('lediga',this)">Lediga</button>
+      <button class="chip active" onclick="setFilter('alla', this)">Alla</button>
+      <button class="chip" onclick="setFilter('boende', this)">Boende</button>
+      <button class="chip" onclick="setFilter('laddstation', this)">Laddning</button>
+      <button class="chip" onclick="setFilter('byteshylla', this)">Byteshylla</button>
+      <button class="chip" onclick="setFilter('rastplats', this)">Rastplats</button>
+      <button class="chip" onclick="setFilter('väntplats', this)">Väntplats</button>
+      <button class="chip" onclick="setFilter('lediga', this)">Lediga</button>
     </div>
     <div class="lantern-list" id="lantern-list">
-      <div class="loading"><div class="spinner"></div>Hämtar lanternor…</div>
+      <div class="loading">
+        <div class="spinner"></div>
+        Hämtar lanternor…
+      </div>
     </div>
   </div>
+
 </div>
 
-<!-- SKAPA MODAL -->
+<!-- ─── Modal: Skapa ny lanterna ─────────────────────────── -->
 <div class="overlay" id="create-overlay">
   <div class="modal">
     <div class="modal-head">
@@ -185,23 +84,28 @@ textarea{resize:vertical;min-height:70px;line-height:1.5;}
       <button class="modal-close" onclick="closeCreate()">×</button>
     </div>
     <div class="modal-body">
+
       <div class="form-group">
         <label class="form-label">Namn på lanternan <span>*</span></label>
         <input type="text" id="f-namn" placeholder="t.ex. Sollanternan i Haga"/>
       </div>
+
       <div class="form-group">
         <label class="form-label">Beskrivning</label>
         <textarea id="f-beskr" placeholder="Beskriv gemenskapens syfte och vision…"></textarea>
       </div>
+
       <div class="form-group">
         <label class="form-label">Plats / område <span>*</span></label>
         <input type="text" id="f-plats" placeholder="t.ex. Haga, Göteborg"/>
       </div>
+
       <div class="form-group">
         <label class="form-label">Markera platsen på kartan <span>*</span></label>
         <div id="pick-map"></div>
         <div class="pick-hint" id="pick-hint">Klicka på kartan för att placera lanternan</div>
       </div>
+
       <div class="form-row2">
         <div class="form-group">
           <label class="form-label">Max antal platser <span>*</span></label>
@@ -212,6 +116,7 @@ textarea{resize:vertical;min-height:70px;line-height:1.5;}
           <input type="email" id="f-email" placeholder="du@exempel.se"/>
         </div>
       </div>
+
       <div class="form-group">
         <label class="form-label">Inriktning</label>
         <div class="checkbox-grid">
@@ -225,6 +130,7 @@ textarea{resize:vertical;min-height:70px;line-height:1.5;}
           <label class="cb-item"><input type="checkbox" value="energi"> Energidelning</label>
         </div>
       </div>
+
     </div>
     <div class="modal-foot">
       <button class="btn-cancel" onclick="closeCreate()">Avbryt</button>
@@ -233,15 +139,15 @@ textarea{resize:vertical;min-height:70px;line-height:1.5;}
   </div>
 </div>
 
-<!-- ANMÄLAN MODAL -->
+<!-- ─── Modal: Anmäl dig ──────────────────────────────────── -->
 <div class="overlay" id="join-overlay">
-  <div class="modal" style="max-width:420px;">
+  <div class="modal" style="max-width: 420px;">
     <div class="modal-head">
       <h2 id="join-title">Anmäl dig</h2>
       <button class="modal-close" onclick="closeJoin()">×</button>
     </div>
     <div class="modal-body">
-      <p style="font-size:0.84rem;color:var(--text-mid);margin-bottom:1rem;" id="join-desc"></p>
+      <p id="join-desc" style="font-size: 0.84rem; color: var(--text-mid); margin-bottom: 1rem;"></p>
       <div class="form-group">
         <label class="form-label">Ditt namn</label>
         <input type="text" id="j-namn" placeholder="Förnamn Efternamn"/>
@@ -258,196 +164,18 @@ textarea{resize:vertical;min-height:70px;line-height:1.5;}
   </div>
 </div>
 
+<!-- ─── Toast ─────────────────────────────────────────────── -->
 <div class="toast" id="toast"></div>
 
-<script>
-const SUPA_URL='https://wtsaivdajjiyymvwuksc.supabase.co';
-const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind0c2FpdmRhamppeXltdnd1a3NjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDg5NjQsImV4cCI6MjA5MTgyNDk2NH0.rHuzK0Siov-Viy1cseVJYn-8xiNSjOCJKxUquurXs2M';
-const sb=supabase.createClient(SUPA_URL,SUPA_KEY);
+<!-- ─── Scripts (load order matters) ─────────────────────── -->
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="js/map.js"></script>
+<script src="js/list.js"></script>
+<script src="js/create.js"></script>
+<script src="js/join.js"></script>
+<script src="js/app.js"></script>
 
-let lanternor=[],anmalningar=[],activeFilter='alla',markers={},pickLat=null,pickLng=null,pickMarker=null,pickMap=null,joinTarget=null;
-
-const map=L.map('map',{zoomControl:true}).setView([62.5,16.0],5);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-  attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',maxZoom:19
-}).addTo(map);
-
-function makeIcon(full){
-  return L.divIcon({
-    className:'',
-    html:`<div class="lantern-marker${full?' full':''}"></div>`,
-    iconSize:[28,28],iconAnchor:[14,14],popupAnchor:[0,-16]
-  });
-}
-
-function countMembers(id){return anmalningar.filter(a=>a.lanterna_id===id).length;}
-
-function updateStats(){
-  document.getElementById('s-total').textContent=lanternor.length;
-  document.getElementById('s-members').textContent=anmalningar.length;
-  const spots=lanternor.reduce((s,l)=>s+Math.max(0,l.max_platser-countMembers(l.id)),0);
-  document.getElementById('s-spots').textContent=spots;
-}
-
-function buildPopup(l){
-  const m=countMembers(l.id),left=l.max_platser-m,full=left<=0;
-  const tags=(l.inriktningar||[]).map(t=>`<span class="popup-tag">${t}</span>`).join('');
-  return `<div class="popup-name">${l.namn}</div>
-    <div class="popup-loc">${l.plats}</div>
-    ${tags?`<div class="popup-tags">${tags}</div>`:''}
-    <div class="popup-row">
-      <span class="popup-spots">${m}/${l.max_platser} anmälda</span>
-      <button class="popup-btn"${full?' disabled':''} onclick="openJoin('${l.id}')">${full?'Fullbokad':'Anmäl mig'}</button>
-    </div>`;
-}
-
-function renderMap(){
-  Object.values(markers).forEach(m=>map.removeLayer(m));
-  markers={};
-  lanternor.forEach(l=>{
-    if(!l.lat||!l.lng)return;
-    const full=countMembers(l.id)>=l.max_platser;
-    const marker=L.marker([l.lat,l.lng],{icon:makeIcon(full)}).addTo(map)
-      .bindPopup(buildPopup(l),{maxWidth:240,minWidth:200});
-    markers[l.id]=marker;
-  });
-}
-
-function renderList(){
-  const el=document.getElementById('lantern-list');
-  let list=[...lanternor];
-  if(activeFilter==='lediga')list=list.filter(l=>countMembers(l.id)<l.max_platser);
-  else if(activeFilter!=='alla')list=list.filter(l=>(l.inriktningar||[]).includes(activeFilter));
-  if(!list.length){el.innerHTML='<div class="empty">Inga lanternor matchar filtret.</div>';return;}
-  el.innerHTML=list.map(l=>{
-    const m=countMembers(l.id),left=l.max_platser-m,full=left<=0;
-    const tags=(l.inriktningar||[]).map(t=>`<span class="l-tag">${t}</span>`).join('');
-    return `<div class="l-card" id="card-${l.id}" onclick="focusLantern('${l.id}')">
-      <div class="l-card-top"><div class="l-name">${l.namn}</div>
-      <div class="l-badge ${full?'full':'ok'}">${full?'Fullbokad':left+' kvar'}</div></div>
-      <div class="l-loc">${l.plats}</div>
-      ${l.beskrivning?`<div class="l-desc">${l.beskrivning}</div>`:''}
-      ${tags?`<div class="l-tags">${tags}</div>`:''}
-      <div class="l-footer">
-        <div class="l-members">${m} / ${l.max_platser} anmälda</div>
-        <button class="btn-join"${full?' disabled':''} onclick="event.stopPropagation();openJoin('${l.id}')">${full?'Fullbokad':'Anmäl mig'}</button>
-      </div></div>`;
-  }).join('');
-}
-
-function focusLantern(id){
-  const l=lanternor.find(x=>x.id===id);
-  if(!l||!l.lat)return;
-  map.setView([l.lat,l.lng],14,{animate:true});
-  if(markers[id])markers[id].openPopup();
-  document.querySelectorAll('.l-card').forEach(c=>c.classList.remove('highlighted'));
-  const card=document.getElementById('card-'+id);
-  if(card){card.classList.add('highlighted');card.scrollIntoView({behavior:'smooth',block:'nearest'});}
-}
-
-function setFilter(f,el){
-  activeFilter=f;
-  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
-  el.classList.add('active');
-  renderList();
-}
-
-async function loadData(){
-  const [{data:l},{data:a}]=await Promise.all([
-    sb.from('lanternor').select('*').order('created_at',{ascending:false}),
-    sb.from('anmalningar').select('lanterna_id,email')
-  ]);
-  lanternor=l||[];anmalningar=a||[];
-  renderMap();renderList();updateStats();
-}
-
-function openCreate(){
-  document.getElementById('create-overlay').classList.add('open');
-  setTimeout(()=>{
-    if(!pickMap){
-      pickMap=L.map('pick-map',{zoomControl:true}).setView([59.33,17.0],5);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-        attribution:'© OpenStreetMap',maxZoom:19
-      }).addTo(pickMap);
-      pickMap.on('click',e=>{
-        pickLat=parseFloat(e.latlng.lat.toFixed(6));
-        pickLng=parseFloat(e.latlng.lng.toFixed(6));
-        if(pickMarker)pickMap.removeLayer(pickMarker);
-        pickMarker=L.marker([pickLat,pickLng]).addTo(pickMap);
-        const h=document.getElementById('pick-hint');
-        h.textContent=`Markerat: ${pickLat}, ${pickLng}`;
-        h.className='pick-hint picked';
-      });
-    }
-    pickMap.invalidateSize();
-  },120);
-}
-
-function closeCreate(){
-  document.getElementById('create-overlay').classList.remove('open');
-  ['f-namn','f-beskr','f-plats','f-spots','f-email'].forEach(id=>document.getElementById(id).value='');
-  document.querySelectorAll('.checkbox-grid input').forEach(cb=>cb.checked=false);
-  pickLat=null;pickLng=null;
-  if(pickMarker&&pickMap){pickMap.removeLayer(pickMarker);pickMarker=null;}
-  const h=document.getElementById('pick-hint');
-  h.textContent='Klicka på kartan för att placera lanternan';
-  h.className='pick-hint';
-}
-
-async function submitCreate(){
-  const namn=document.getElementById('f-namn').value.trim();
-  const plats=document.getElementById('f-plats').value.trim();
-  const spots=parseInt(document.getElementById('f-spots').value);
-  const email=document.getElementById('f-email').value.trim();
-  if(!namn||!plats||!spots||!email){showToast('Fyll i namn, plats, antal platser och e-post.','error');return;}
-  if(!pickLat||!pickLng){showToast('Markera platsen på kartan.','error');return;}
-  const inriktningar=[...document.querySelectorAll('.checkbox-grid input:checked')].map(cb=>cb.value);
-  const btn=document.getElementById('btn-submit');
-  btn.disabled=true;btn.textContent='Publicerar…';
-  const{error}=await sb.from('lanternor').insert({
-    namn,plats,
-    beskrivning:document.getElementById('f-beskr').value.trim()||null,
-    max_platser:spots,kontakt_email:email,inriktningar,lat:pickLat,lng:pickLng
-  });
-  btn.disabled=false;btn.textContent='Publicera lanterna';
-  if(error){showToast('Fel: '+error.message,'error');return;}
-  closeCreate();await loadData();showToast('Lanternan är publicerad!','success');
-}
-
-function openJoin(id){
-  joinTarget=lanternor.find(l=>l.id===id);
-  if(!joinTarget)return;
-  const m=countMembers(joinTarget.id);
-  document.getElementById('join-title').textContent=joinTarget.namn;
-  document.getElementById('join-desc').textContent=joinTarget.plats+' · '+(joinTarget.max_platser-m)+' platser kvar';
-  document.getElementById('j-namn').value='';document.getElementById('j-email').value='';
-  document.getElementById('join-overlay').classList.add('open');
-}
-function closeJoin(){document.getElementById('join-overlay').classList.remove('open');joinTarget=null;}
-
-async function submitJoin(){
-  const email=document.getElementById('j-email').value.trim();
-  if(!email){showToast('Ange din e-postadress.','error');return;}
-  if(!joinTarget)return;
-  if(anmalningar.find(a=>a.lanterna_id===joinTarget.id&&a.email===email)){showToast('Den e-postadressen är redan anmäld.','error');return;}
-  const btn=document.getElementById('btn-join-submit');
-  btn.disabled=true;btn.textContent='Anmäler…';
-  const{error}=await sb.from('anmalningar').insert({
-    lanterna_id:joinTarget.id,
-    namn:document.getElementById('j-namn').value.trim()||null,email
-  });
-  btn.disabled=false;btn.textContent='Anmäl mig';
-  if(error){showToast('Fel: '+error.message,'error');return;}
-  closeJoin();await loadData();showToast('Du är anmäld!','success');
-}
-
-function showToast(msg,type=''){
-  const t=document.getElementById('toast');
-  t.textContent=msg;t.className='toast show '+type;
-  setTimeout(()=>t.className='toast',3500);
-}
-
-loadData();
-</script>
 </body>
 </html>
