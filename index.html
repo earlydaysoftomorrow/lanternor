@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Lanternan — Energigemenskaper</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --stone:#1c1b19;
+  --stone-mid:#3a3935;
+  --bg:#f7f5f0;
+  --bg-card:#ffffff;
+  --border:#e2ddd5;
+  --border-mid:#c8c2b8;
+  --amber:#d4840a;
+  --amber-light:#fef3dc;
+  --amber-mid:#f5c842;
+  --text:#1c1b19;
+  --text-mid:#5a5750;
+  --text-light:#9a948a;
+  --success:#2d6a4f;
+  --success-bg:#d8f3dc;
+  --danger:#c1121f;
+  --danger-bg:#ffe5e5;
+  --font-display:'DM Serif Display',serif;
+  --font-body:'DM Sans',sans-serif;
+  --radius:8px;
+  --radius-lg:14px;
+}
+html{scroll-behavior:smooth;}
+body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* NAV */
+nav{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 2rem;height:56px;
+  background:var(--bg-card);
+  border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:100;
+}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--text);}
+.logo-mark{width:28px;height:28px;position:relative;}
+.logo-mark svg{width:28px;height:28px;}
+.logo-name{font-family:var(--font-display);font-size:1.15rem;letter-spacing:-0.01em;}
+.nav-right{display:flex;align-items:center;gap:8px;}
+.nav-link{padding:6px 14px;font-size:0.8rem;letter-spacing:0.04em;text-transform:uppercase;color:var(--text-mid);text-decoration:none;border-radius:var(--radius);transition:background 0.15s;}
+.nav-link:hover{background:#f0ebe3;}
+.btn-new{padding:7px 16px;font-size:0.82rem;font-weight:500;background:var(--stone);color:#fff;border:none;border-radius:var(--radius);cursor:pointer;font-family:var(--font-body);letter-spacing:0.02em;transition:opacity 0.15s;}
+.btn-new:hover{opacity:0.85;}
+
+/* HERO */
+.hero{
+  padding:3.5rem 2rem 2.5rem;
+  border-bottom:1px solid var(--border);
+  background:var(--bg-card);
+}
+.hero-inner{max-width:780px;}
+.hero-eyebrow{font-size:0.72rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-light);margin-bottom:1rem;display:flex;align-items:center;gap:8px;}
+.hero-eyebrow::before{content:'';width:24px;height:1px;background:var(--border-mid);}
+.hero h1{font-family:var(--font-display);font-size:clamp(2rem,5vw,3.2rem);line-height:1.08;letter-spacing:-0.02em;margin-bottom:1rem;}
+.hero h1 em{font-style:italic;color:var(--text-mid);}
+.hero-sub{font-size:0.95rem;color:var(--text-mid);line-height:1.7;max-width:520px;}
+.stats-row{display:flex;gap:2rem;margin-top:2rem;padding-top:1.5rem;border-top:1px solid var(--border);}
+.stat-item{text-align:left;}
+.stat-num{font-family:var(--font-display);font-size:1.8rem;line-height:1;}
+.stat-lbl{font-size:0.72rem;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-light);margin-top:2px;}
+
+/* MAIN LAYOUT */
+.main{display:grid;grid-template-columns:1fr 380px;min-height:calc(100vh - 56px - 200px);}
+
+/* MAP */
+.map-panel{border-right:1px solid var(--border);position:relative;}
+.map-canvas{width:100%;height:100%;min-height:520px;background:#e8e4dc;cursor:crosshair;position:relative;overflow:hidden;}
+.map-hint{position:absolute;bottom:16px;left:16px;background:rgba(255,255,255,0.92);border:1px solid var(--border);border-radius:var(--radius);padding:8px 12px;font-size:0.75rem;color:var(--text-mid);}
+.map-svg{width:100%;height:100%;min-height:520px;}
+.map-pin{cursor:pointer;transition:transform 0.15s;}
+.map-pin:hover .pin-outer{r:14;}
+.pin-outer{transition:r 0.15s;}
+
+/* SIDEBAR */
+.sidebar{display:flex;flex-direction:column;}
+.sidebar-header{padding:1.25rem 1.25rem 0.75rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.sidebar-title{font-size:0.8rem;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-mid);}
+.filter-row{display:flex;gap:6px;padding:0.75rem 1.25rem;border-bottom:1px solid var(--border);flex-wrap:wrap;}
+.chip{padding:4px 10px;font-size:0.72rem;border:1px solid var(--border);background:transparent;color:var(--text-mid);cursor:pointer;border-radius:20px;transition:all 0.12s;font-family:var(--font-body);}
+.chip.active{background:var(--stone);color:#fff;border-color:var(--stone);}
+.chip:hover:not(.active){background:#f0ebe3;}
+.lantern-list{overflow-y:auto;flex:1;}
+.l-card{padding:1rem 1.25rem;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.12s;}
+.l-card:hover{background:#faf8f4;}
+.l-card.highlighted{background:var(--amber-light);}
+.l-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:4px;}
+.l-name{font-size:0.92rem;font-weight:500;}
+.l-badge{font-size:0.68rem;padding:2px 8px;border-radius:20px;white-space:nowrap;flex-shrink:0;}
+.l-badge.ok{background:var(--success-bg);color:var(--success);}
+.l-badge.full{background:var(--danger-bg);color:var(--danger);}
+.l-loc{font-size:0.75rem;color:var(--text-light);margin-bottom:6px;display:flex;align-items:center;gap:4px;}
+.l-desc{font-size:0.78rem;color:var(--text-mid);line-height:1.55;margin-bottom:8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.l-tags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;}
+.l-tag{font-size:0.65rem;padding:2px 7px;border-radius:3px;background:var(--amber-light);color:#7a4a00;font-weight:500;letter-spacing:0.02em;}
+.l-footer{display:flex;align-items:center;justify-content:space-between;}
+.l-members{font-size:0.72rem;color:var(--text-light);}
+.btn-join{padding:5px 14px;font-size:0.75rem;font-weight:500;border:1px solid var(--stone);background:transparent;color:var(--stone);cursor:pointer;border-radius:var(--radius);font-family:var(--font-body);transition:all 0.15s;}
+.btn-join:hover:not(:disabled){background:var(--stone);color:#fff;}
+.btn-join:disabled{opacity:0.35;cursor:not-allowed;}
+.empty{padding:2.5rem;text-align:center;color:var(--text-light);font-size:0.85rem;}
+
+/* MODALS */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:200;align-items:center;justify-content:center;padding:1rem;}
+.overlay.open{display:flex;}
+.modal{background:var(--bg-card);border-radius:var(--radius-lg);width:100%;max-width:560px;max-height:90vh;overflow-y:auto;border:1px solid var(--border);}
+.modal-head{padding:1.25rem 1.5rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg-card);z-index:1;}
+.modal-head h2{font-family:var(--font-display);font-size:1.3rem;}
+.modal-close{background:none;border:none;cursor:pointer;color:var(--text-light);font-size:1.4rem;line-height:1;padding:2px 6px;border-radius:4px;}
+.modal-close:hover{background:#f0ebe3;color:var(--text);}
+.modal-body{padding:1.5rem;}
+.form-group{margin-bottom:1.1rem;}
+.form-label{display:block;font-size:0.78rem;font-weight:500;color:var(--text-mid);margin-bottom:5px;letter-spacing:0.02em;}
+.form-label span{color:var(--danger);}
+input[type=text],input[type=email],input[type=number],textarea,select{
+  width:100%;padding:9px 12px;font-size:0.88rem;font-family:var(--font-body);
+  border:1px solid var(--border);border-radius:var(--radius);
+  background:var(--bg);color:var(--text);
+  transition:border-color 0.15s;
+}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--stone);background:#fff;}
+textarea{resize:vertical;min-height:80px;line-height:1.5;}
+.form-row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.checkbox-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.cb-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:background 0.12s;font-size:0.82rem;}
+.cb-item:hover{background:#faf8f4;}
+.cb-item input{width:15px;height:15px;cursor:pointer;accent-color:var(--stone);}
+.map-picker-wrap{background:#e8e4dc;border:1px solid var(--border);border-radius:var(--radius);height:160px;position:relative;cursor:crosshair;overflow:hidden;margin-top:6px;}
+.map-picker-svg{width:100%;height:100%;}
+.picker-hint-txt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:0.78rem;color:var(--text-mid);pointer-events:none;flex-direction:column;gap:6px;}
+.modal-foot{padding:1rem 1.5rem;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;}
+.btn-cancel{padding:8px 18px;font-size:0.82rem;border:1px solid var(--border);background:transparent;color:var(--text-mid);cursor:pointer;border-radius:var(--radius);font-family:var(--font-body);}
+.btn-cancel:hover{background:#f0ebe3;}
+.btn-primary{padding:8px 20px;font-size:0.82rem;font-weight:500;border:none;background:var(--stone);color:#fff;cursor:pointer;border-radius:var(--radius);font-family:var(--font-body);transition:opacity 0.15s;}
+.btn-primary:hover{opacity:0.85;}
+.btn-primary:disabled{opacity:0.5;cursor:not-allowed;}
+
+/* TOAST */
+.toast{
+  position:fixed;bottom:24px;right:24px;z-index:300;
+  background:var(--stone);color:#fff;
+  padding:12px 20px;border-radius:var(--radius);
+  font-size:0.85rem;font-weight:500;
+  transform:translateY(80px);opacity:0;
+  transition:all 0.3s;pointer-events:none;
+}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.success{background:var(--success);}
+.toast.error{background:var(--danger);}
+
+/* LOADING */
+.loading{text-align:center;padding:3rem;color:var(--text-light);}
+.spinner{width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--stone);border-radius:50%;animation:spin 0.7s linear infinite;margin:0 auto 0.75rem;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* DETAIL PANEL */
+.detail-panel{display:none;padding:1.25rem;border-bottom:1px solid var(--border);background:var(--amber-light);}
+.detail-panel.open{display:block;}
+.detail-name{font-family:var(--font-display);font-size:1.2rem;margin-bottom:4px;}
+.detail-loc{font-size:0.78rem;color:var(--text-mid);margin-bottom:8px;}
+.detail-desc{font-size:0.82rem;color:var(--text-mid);line-height:1.6;margin-bottom:10px;}
+.detail-close{float:right;background:none;border:none;cursor:pointer;font-size:1.1rem;color:var(--text-light);}
+
+@media(max-width:768px){
+  .main{grid-template-columns:1fr;}
+  .map-panel{border-right:none;border-bottom:1px solid var(--border);}
+  .map-canvas{min-height:280px;}
+  .stats-row{gap:1.25rem;}
+  .form-row2{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="logo" href="#">
+    <div class="logo-mark">
+      <svg viewBox="0 0 28 28" fill="none">
+        <circle cx="14" cy="14" r="6" fill="#d4840a"/>
+        <circle cx="14" cy="14" r="10" stroke="#d4840a" stroke-width="1" stroke-dasharray="3 2.5" fill="none"/>
+        <circle cx="14" cy="14" r="13" stroke="#e8c87a" stroke-width="0.5" fill="none"/>
+      </svg>
+    </div>
+    <span class="logo-name">Lanternan</span>
+  </a>
+  <div class="nav-right">
+    <a class="nav-link" href="#" onclick="scrollToMap()">Karta</a>
+    <button class="btn-new" onclick="openCreate()">+ Ny lanterna</button>
+  </div>
+</nav>
+
+<div class="hero">
+  <div class="hero-inner">
+    <div class="hero-eyebrow">Energigemenskap</div>
+    <h1>Skulpturer som <em>lyser upp</em><br>lokalsamhället</h1>
+    <p class="hero-sub">Lanternan är en plattform för energigemenskaper som formas kring energigenererande skulpturer — platser där grannar möts, resurser delas och ny gemenskap uppstår.</p>
+    <div class="stats-row">
+      <div class="stat-item"><div class="stat-num" id="s-total">—</div><div class="stat-lbl">Lanternor</div></div>
+      <div class="stat-item"><div class="stat-num" id="s-members">—</div><div class="stat-lbl">Anmälda</div></div>
+      <div class="stat-item"><div class="stat-num" id="s-spots">—</div><div class="stat-lbl">Lediga platser</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="main" id="main">
+  <div class="map-panel">
+    <div class="map-canvas" id="map-canvas">
+      <svg class="map-svg" id="map-svg" viewBox="0 0 700 520" preserveAspectRatio="xMidYMid meet">
+        <defs>
+          <pattern id="g" width="35" height="35" patternUnits="userSpaceOnUse">
+            <path d="M35 0L0 0 0 35" fill="none" stroke="#d4cfc6" stroke-width="0.5"/>
+          </pattern>
+        </defs>
+        <rect width="700" height="520" fill="#e8e4dc"/>
+        <rect width="700" height="520" fill="url(#g)"/>
+        <text x="350" y="260" text-anchor="middle" fill="#a89e90" font-size="13" font-family="'DM Sans',sans-serif">Laddar karta…</text>
+        <g id="pins"></g>
+      </svg>
+      <div class="map-hint">Klicka på en lanterna för detaljer · Klicka "+ Ny lanterna" för att lägga till</div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <span class="sidebar-title">Lanternor</span>
+    </div>
+    <div class="filter-row" id="filter-row">
+      <button class="chip active" onclick="setFilter('alla',this)">Alla</button>
+      <button class="chip" onclick="setFilter('boende',this)">Boende</button>
+      <button class="chip" onclick="setFilter('laddstation',this)">Laddning</button>
+      <button class="chip" onclick="setFilter('byteshylla',this)">Byteshylla</button>
+      <button class="chip" onclick="setFilter('rastplats',this)">Rastplats</button>
+      <button class="chip" onclick="setFilter('väntplats',this)">Väntplats</button>
+      <button class="chip" onclick="setFilter('lediga',this)">Lediga</button>
+    </div>
+    <div class="detail-panel" id="detail-panel"></div>
+    <div class="lantern-list" id="lantern-list">
+      <div class="loading"><div class="spinner"></div>Hämtar lanternor…</div>
+    </div>
+  </div>
+</div>
+
+<!-- SKAPA MODAL -->
+<div class="overlay" id="create-overlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>Skapa ny lanterna</h2>
+      <button class="modal-close" onclick="closeCreate()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Namn på lanternan <span>*</span></label>
+        <input type="text" id="f-namn" placeholder="t.ex. Sollanternan i Haga"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Beskrivning</label>
+        <textarea id="f-beskr" placeholder="Beskriv gemenskapens syfte och vision…"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Plats / område <span>*</span></label>
+        <input type="text" id="f-plats" placeholder="t.ex. Haga, Göteborg"/>
+        <div class="map-picker-wrap" id="map-picker" onclick="pickPos(event)">
+          <svg class="map-picker-svg" viewBox="0 0 500 160">
+            <rect width="500" height="160" fill="#e8e4dc"/>
+            <defs><pattern id="pg" width="25" height="25" patternUnits="userSpaceOnUse"><path d="M25 0L0 0 0 25" fill="none" stroke="#d4cfc6" stroke-width="0.5"/></pattern></defs>
+            <rect width="500" height="160" fill="url(#pg)"/>
+            <circle id="pick-dot" cx="-99" cy="-99" r="8" fill="#d4840a" stroke="#7a4a00" stroke-width="1.5"/>
+          </svg>
+          <div class="picker-hint-txt" id="picker-hint">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" stroke="#a89e90" stroke-width="1.5" fill="none"/><circle cx="12" cy="9" r="3" stroke="#a89e90" stroke-width="1.5" fill="none"/></svg>
+            Klicka för att markera plats på kartan
+          </div>
+        </div>
+      </div>
+      <div class="form-row2">
+        <div class="form-group">
+          <label class="form-label">Max antal platser <span>*</span></label>
+          <input type="number" id="f-spots" min="1" max="999" placeholder="20"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Din e-post <span>*</span></label>
+          <input type="email" id="f-email" placeholder="du@exempel.se"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Inriktning</label>
+        <div class="checkbox-grid">
+          <label class="cb-item"><input type="checkbox" value="boende"> Boende</label>
+          <label class="cb-item"><input type="checkbox" value="laddstation"> Laddstation</label>
+          <label class="cb-item"><input type="checkbox" value="byteshylla"> Byteshylla</label>
+          <label class="cb-item"><input type="checkbox" value="rastplats"> Rastplats</label>
+          <label class="cb-item"><input type="checkbox" value="väntplats"> Väntplats</label>
+          <label class="cb-item"><input type="checkbox" value="odling"> Odling</label>
+          <label class="cb-item"><input type="checkbox" value="kultur"> Kultur & evenemang</label>
+          <label class="cb-item"><input type="checkbox" value="energi"> Energidelning</label>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" onclick="closeCreate()">Avbryt</button>
+      <button class="btn-primary" id="btn-submit" onclick="submitCreate()">Publicera lanterna</button>
+    </div>
+  </div>
+</div>
+
+<!-- ANMÄLAN MODAL -->
+<div class="overlay" id="join-overlay">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-head">
+      <h2 id="join-title">Anmäl dig</h2>
+      <button class="modal-close" onclick="closeJoin()">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:0.85rem;color:var(--text-mid);margin-bottom:1.25rem;" id="join-desc"></p>
+      <div class="form-group">
+        <label class="form-label">Ditt namn</label>
+        <input type="text" id="j-namn" placeholder="Förnamn Efternamn"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">E-postadress <span>*</span></label>
+        <input type="email" id="j-email" placeholder="du@exempel.se"/>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" onclick="closeJoin()">Avbryt</button>
+      <button class="btn-primary" id="btn-join-submit" onclick="submitJoin()">Anmäl mig</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPA_URL = 'https://wtsaivdajjiyymvwuksc.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind0c2FpdmRhamppeXltdnd1a3NjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDg5NjQsImV4cCI6MjA5MTgyNDk2NH0.rHuzK0Siov-Viy1cseVJYn-8xiNSjOCJKxUquurXs2M';
+const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+let lanternor = [];
+let anmalningar = [];
+let activeFilter = 'alla';
+let pickX = null, pickY = null;
+let joinTarget = null;
+
+async function loadData() {
+  const [{ data: l }, { data: a }] = await Promise.all([
+    sb.from('lanternor').select('*').order('created_at', { ascending: false }),
+    sb.from('anmalningar').select('lanterna_id, email')
+  ]);
+  lanternor = l || [];
+  anmalningar = a || [];
+  render();
+  updateStats();
+}
+
+function countMembers(id) {
+  return anmalningar.filter(a => a.lanterna_id === id).length;
+}
+
+function updateStats() {
+  document.getElementById('s-total').textContent = lanternor.length;
+  const members = anmalningar.length;
+  const spots = lanternor.reduce((s, l) => s + Math.max(0, l.max_platser - countMembers(l.id)), 0);
+  document.getElementById('s-members').textContent = members;
+  document.getElementById('s-spots').textContent = spots;
+}
+
+function render() {
+  renderMap();
+  renderList();
+}
+
+function renderMap() {
+  const g = document.getElementById('pins');
+  g.innerHTML = '';
+  const svg = document.getElementById('map-svg');
+  const hint = svg.querySelector('text');
+  if (hint && lanternor.length > 0) hint.remove();
+
+  lanternor.forEach(l => {
+    const members = countMembers(l.id);
+    const full = members >= l.max_platser;
+    const x = l.map_x || 350;
+    const y = l.map_y || 260;
+    const color = full ? '#c1121f' : '#d4840a';
+    const glow = full ? '#f09595' : '#f5c842';
+
+    const gEl = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    gEl.setAttribute('class', 'map-pin');
+    gEl.setAttribute('transform', `translate(${x},${y})`);
+    gEl.onclick = () => showDetail(l.id);
+
+    gEl.innerHTML = `
+      <circle r="18" fill="${glow}" opacity="0.25" class="pin-outer"/>
+      <circle r="9" fill="${color}" stroke="white" stroke-width="1.5"/>
+      <text y="24" text-anchor="middle" font-size="11" fill="#5a5750" font-family="'DM Sans',sans-serif">${l.namn}</text>
+    `;
+    g.appendChild(gEl);
+  });
+}
+
+function renderList() {
+  const el = document.getElementById('lantern-list');
+  let list = lanternor;
+
+  if (activeFilter === 'lediga') {
+    list = list.filter(l => countMembers(l.id) < l.max_platser);
+  } else if (activeFilter !== 'alla') {
+    list = list.filter(l => l.inriktningar && l.inriktningar.includes(activeFilter));
+  }
+
+  if (!list.length) {
+    el.innerHTML = '<div class="empty">Inga lanternor matchar filtret.</div>';
+    return;
+  }
+
+  el.innerHTML = list.map(l => {
+    const members = countMembers(l.id);
+    const left = l.max_platser - members;
+    const full = left <= 0;
+    const tags = (l.inriktningar || []).map(t => `<span class="l-tag">${t}</span>`).join('');
+    return `
+      <div class="l-card" id="card-${l.id}" onclick="showDetail('${l.id}')">
+        <div class="l-card-top">
+          <div class="l-name">${l.namn}</div>
+          <div class="l-badge ${full ? 'full' : 'ok'}">${full ? 'Fullbokad' : left + ' kvar'}</div>
+        </div>
+        <div class="l-loc">
+          <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M6 1C3.8 1 2 2.8 2 5c0 3 4 7 4 7s4-4 4-7c0-2.2-1.8-4-4-4z" stroke="currentColor" stroke-width="1"/></svg>
+          ${l.plats}
+        </div>
+        ${l.beskrivning ? `<div class="l-desc">${l.beskrivning}</div>` : ''}
+        ${tags ? `<div class="l-tags">${tags}</div>` : ''}
+        <div class="l-footer">
+          <div class="l-members">${members} / ${l.max_platser} anmälda</div>
+          <button class="btn-join" ${full ? 'disabled' : ''} onclick="event.stopPropagation();openJoin('${l.id}')">${full ? 'Fullbokad' : 'Anmäl mig'}</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function showDetail(id) {
+  const l = lanternor.find(x => x.id === id);
+  if (!l) return;
+  const members = countMembers(l.id);
+  const left = Math.max(0, l.max_platser - members);
+  const full = left <= 0;
+  const tags = (l.inriktningar || []).map(t => `<span class="l-tag">${t}</span>`).join('');
+  const panel = document.getElementById('detail-panel');
+  panel.innerHTML = `
+    <button class="detail-close" onclick="document.getElementById('detail-panel').classList.remove('open')">×</button>
+    <div class="detail-name">${l.namn}</div>
+    <div class="detail-loc">${l.plats} &middot; ${members}/${l.max_platser} anmälda &middot; ${full ? '<span style="color:var(--danger)">Fullbokad</span>' : left + ' lediga platser'}</div>
+    ${l.beskrivning ? `<div class="detail-desc">${l.beskrivning}</div>` : ''}
+    ${tags ? `<div class="l-tags" style="margin-bottom:10px;">${tags}</div>` : ''}
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button class="btn-join" ${full ? 'disabled' : ''} onclick="openJoin('${l.id}')">${full ? 'Fullbokad' : 'Anmäl mig'}</button>
+      <span style="font-size:0.75rem;color:var(--text-light);">Kontakt: ${l.kontakt_email}</span>
+    </div>`;
+  panel.classList.add('open');
+  document.querySelectorAll('.l-card').forEach(c => c.classList.remove('highlighted'));
+  const card = document.getElementById('card-' + id);
+  if (card) { card.classList.add('highlighted'); card.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+}
+
+function setFilter(f, el) {
+  activeFilter = f;
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderList();
+}
+
+function openCreate() { document.getElementById('create-overlay').classList.add('open'); }
+function closeCreate() {
+  document.getElementById('create-overlay').classList.remove('open');
+  ['f-namn','f-beskr','f-plats','f-spots','f-email'].forEach(id => document.getElementById(id).value = '');
+  document.querySelectorAll('.checkbox-grid input').forEach(cb => cb.checked = false);
+  pickX = null; pickY = null;
+  document.getElementById('pick-dot').setAttribute('cx', -99);
+  document.getElementById('pick-dot').setAttribute('cy', -99);
+  document.getElementById('picker-hint').style.display = 'flex';
+}
+
+function pickPos(e) {
+  const rect = e.currentTarget.getBoundingClientRect();
+  const px = (e.clientX - rect.left) / rect.width;
+  const py = (e.clientY - rect.top) / rect.height;
+  pickX = Math.round(px * 700);
+  pickY = Math.round(py * 520);
+  document.getElementById('pick-dot').setAttribute('cx', px * 500);
+  document.getElementById('pick-dot').setAttribute('cy', py * 160);
+  document.getElementById('picker-hint').style.display = 'none';
+}
+
+async function submitCreate() {
+  const namn = document.getElementById('f-namn').value.trim();
+  const plats = document.getElementById('f-plats').value.trim();
+  const spots = parseInt(document.getElementById('f-spots').value);
+  const email = document.getElementById('f-email').value.trim();
+  if (!namn || !plats || !spots || !email) { showToast('Fyll i namn, plats, antal platser och e-post.', 'error'); return; }
+  const inriktningar = [...document.querySelectorAll('.checkbox-grid input:checked')].map(cb => cb.value);
+  const btn = document.getElementById('btn-submit');
+  btn.disabled = true; btn.textContent = 'Publicerar…';
+  const { error } = await sb.from('lanternor').insert({
+    namn, plats,
+    beskrivning: document.getElementById('f-beskr').value.trim() || null,
+    max_platser: spots,
+    kontakt_email: email,
+    inriktningar,
+    map_x: pickX || Math.round(150 + Math.random() * 400),
+    map_y: pickY || Math.round(80 + Math.random() * 360)
+  });
+  btn.disabled = false; btn.textContent = 'Publicera lanterna';
+  if (error) { showToast('Något gick fel: ' + error.message, 'error'); return; }
+  closeCreate();
+  await loadData();
+  showToast('Lanternan är publicerad!', 'success');
+}
+
+function openJoin(id) {
+  joinTarget = lanternor.find(l => l.id === id);
+  if (!joinTarget) return;
+  const members = countMembers(joinTarget.id);
+  document.getElementById('join-title').textContent = joinTarget.namn;
+  document.getElementById('join-desc').textContent = joinTarget.plats + ' · ' + (joinTarget.max_platser - members) + ' platser kvar';
+  document.getElementById('j-namn').value = '';
+  document.getElementById('j-email').value = '';
+  document.getElementById('join-overlay').classList.add('open');
+}
+function closeJoin() { document.getElementById('join-overlay').classList.remove('open'); joinTarget = null; }
+
+async function submitJoin() {
+  const email = document.getElementById('j-email').value.trim();
+  if (!email) { showToast('Ange din e-postadress.', 'error'); return; }
+  if (!joinTarget) return;
+  const already = anmalningar.find(a => a.lanterna_id === joinTarget.id && a.email === email);
+  if (already) { showToast('Den e-postadressen är redan anmäld.', 'error'); return; }
+  const btn = document.getElementById('btn-join-submit');
+  btn.disabled = true; btn.textContent = 'Anmäler…';
+  const { error } = await sb.from('anmalningar').insert({
+    lanterna_id: joinTarget.id,
+    namn: document.getElementById('j-namn').value.trim() || null,
+    email
+  });
+  btn.disabled = false; btn.textContent = 'Anmäl mig';
+  if (error) { showToast('Något gick fel: ' + error.message, 'error'); return; }
+  closeJoin();
+  await loadData();
+  showToast('Du är anmäld!', 'success');
+}
+
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + type;
+  setTimeout(() => t.className = 'toast', 3500);
+}
+
+function scrollToMap() { document.getElementById('main').scrollIntoView({ behavior: 'smooth' }); }
+
+loadData();
+</script>
+</body>
+</html>
