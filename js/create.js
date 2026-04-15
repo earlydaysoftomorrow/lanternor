@@ -59,7 +59,7 @@ async function sendEditEmail(email, namn, editToken) {
       'Authorization': 'Bearer ' + RESEND_KEY
     },
     body: JSON.stringify({
-      from: 'Lanternor över Tjörn <lanternor@egnahemsfabriken.se>',
+      from: 'Lanternor över Tjörn <onboarding@resend.dev>',
       to: [email],
       subject: 'Din lanterna "' + namn + '" är publicerad!',
       html: '<div style="font-family:sans-serif;max-width:520px;margin:0 auto;color:#1c1b19;">' +
