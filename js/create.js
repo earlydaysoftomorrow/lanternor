@@ -4,8 +4,6 @@ let pickLng = null;
 let pickMarker = null;
 let pickMap = null;
 
-const RESEND_KEY = 're_ckb1DaFs_5fWm85WspficgYDVkn2hWqUB';
-
 // ─── Open / close ─────────────────────────────────────────
 function openCreate() {
   document.getElementById('create-overlay').classList.add('open');
@@ -49,30 +47,28 @@ function closeCreate() {
   hint.className = 'pick-hint';
 }
 
-// ─── Skicka redigeringsmail via Resend ────────────────────
+// ─── Skicka redigeringsmail via serverless funktion ───────
 async function sendEditEmail(email, namn, editToken) {
   const editUrl = window.location.origin + '/redigera.html?token=' + editToken;
-  await fetch('https://api.resend.com/emails', {
+  const html = '<div style="font-family:sans-serif;max-width:520px;margin:0 auto;color:#1c1b19;">' +
+    '<div style="background:#fef3dc;padding:2rem;border-radius:8px;margin-bottom:1.5rem;">' +
+    '<h1 style="font-size:1.5rem;margin:0 0 0.5rem;">Din lanterna lyser!</h1>' +
+    '<p style="margin:0;color:#5a5750;">' + namn + ' är nu publicerad på kartan över Tjörn.</p>' +
+    '</div>' +
+    '<p style="line-height:1.7;">Vill du uppdatera beskrivning, inriktning eller antal platser? Använd din personliga redigeringslänk nedan. Spara den gärna i din inkorg.</p>' +
+    '<a href="' + editUrl + '" style="display:inline-block;background:#1c1b19;color:#fff;padding:0.75rem 1.5rem;border-radius:8px;text-decoration:none;margin:1rem 0;font-weight:500;">Redigera din lanterna →</a>' +
+    '<p style="font-size:0.82rem;color:#9a948a;margin-top:1.5rem;">Länken är personlig och kopplad till din e-postadress. Dela den inte med andra.</p>' +
+    '<hr style="border:none;border-top:1px solid #e2ddd5;margin:1.5rem 0;">' +
+    '<p style="font-size:0.78rem;color:#9a948a;">Lanternor över Tjörn · Egnahemsfabriken · <a href="https://lanternor.vercel.app" style="color:#d4840a;">lanternor.vercel.app</a></p>' +
+    '</div>';
+
+  await fetch('/api/send-email', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + RESEND_KEY
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      from: 'Lanternor över Tjörn <onboarding@resend.dev>',
-      to: [email],
+      to: email,
       subject: 'Din lanterna "' + namn + '" är publicerad!',
-      html: '<div style="font-family:sans-serif;max-width:520px;margin:0 auto;color:#1c1b19;">' +
-        '<div style="background:#fef3dc;padding:2rem;border-radius:8px;margin-bottom:1.5rem;">' +
-        '<h1 style="font-size:1.5rem;margin:0 0 0.5rem;">Din lanterna lyser!</h1>' +
-        '<p style="margin:0;color:#5a5750;">' + namn + ' är nu publicerad på kartan över Tjörn.</p>' +
-        '</div>' +
-        '<p style="line-height:1.7;">Vill du uppdatera beskrivning, inriktning eller antal platser? Använd din personliga redigeringslänk nedan. Spara den gärna i din inkorg.</p>' +
-        '<a href="' + editUrl + '" style="display:inline-block;background:#1c1b19;color:#fff;padding:0.75rem 1.5rem;border-radius:8px;text-decoration:none;margin:1rem 0;font-weight:500;">Redigera din lanterna →</a>' +
-        '<p style="font-size:0.82rem;color:#9a948a;margin-top:1.5rem;">Länken är personlig och kopplad till din e-postadress. Dela den inte med andra.</p>' +
-        '<hr style="border:none;border-top:1px solid #e2ddd5;margin:1.5rem 0;">' +
-        '<p style="font-size:0.78rem;color:#9a948a;">Lanternor över Tjörn · Egnahemsfabriken · <a href="https://lanternor.vercel.app" style="color:#d4840a;">lanternor.vercel.app</a></p>' +
-        '</div>'
+      html
     })
   });
 }
