@@ -1,5 +1,5 @@
 // ─── Init main map ────────────────────────────────────────
-const map = L.map('map', { zoomControl: true }).setView([62.5, 16.0], 5);
+const map = L.map('map', { zoomControl: true }).setView([57.98, 11.64], 11);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
