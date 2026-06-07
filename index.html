@@ -671,8 +671,8 @@ let dragStartOff  = 0;
 let velocity      = 0;       // px/frame
 let lastDragX     = 0;
 let lastDragT     = 0;
-const FRICTION    = 0.9;    // hur snabbt farten avtar (0.9=snabbt, 0.96=långsamt)
-const MIN_VEL     = 0.1;     // hastighet under vilken vi stannar
+const FRICTION    = 0.97;    // hur snabbt farten avtar (0.9=snabbt, 0.96=långsamt)
+const MIN_VEL     = 0.05;     // hastighet under vilken vi stannar
 
 const hint = document.getElementById('hint');
 
@@ -718,7 +718,7 @@ function wheelLoop() {
     rafId = null;
     return;
   }
-  applyOffset(currentOffset + dist * 0.05);
+  applyOffset(currentOffset + dist * 0.04);
   rafId = requestAnimationFrame(wheelLoop);
 }
 
