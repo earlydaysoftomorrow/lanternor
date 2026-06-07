@@ -1,243 +1,753 @@
 <!DOCTYPE html>
 <html lang="sv">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Lanternan — Energigemenskaper</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css"/>
-<link rel="stylesheet" href="css/style.css"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lanternor över Tjörn</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --ink:   #1a2e34;
+      --teal:  #2e6e5a;
+      --mist:  #f0ece4;
+      --sea:   #c8dce4;
+      --NAV_H: 56px;
+
+      /* Panorama dimensions — matches tiles */
+      --TILE_W: 2000;
+      --TILE_H: 823;
+      --N_TILES: 6;
+      /* Viewport height for the panorama stage (px) */
+      --STAGE_H: 480px;
+    }
+
+    html, body { height: 100%; overflow-x: hidden; }
+    body { background: var(--mist); font-family: 'DM Sans', sans-serif; color: var(--ink); }
+
+    /* ── NAV ─────────────────────────────────────────────────── */
+    #nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+      height: var(--NAV_H);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 2rem;
+      background: rgba(240,236,228,0.94);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid rgba(26,46,52,0.1);
+    }
+    .logo { display: flex; align-items: center; gap: 9px; text-decoration: none; }
+    .logo-text { font-family: 'Playfair Display', serif; font-size: 14px; color: var(--ink); letter-spacing: 0.02em; }
+    .nav-links { display: flex; gap: 2rem; align-items: center; }
+    .nav-links a { font-size: 12px; color: #3a5560; text-decoration: none; letter-spacing: 0.06em; transition: color .15s; }
+    .nav-links a:hover { color: var(--ink); }
+    .nav-cta {
+      font-size: 12px; color: var(--ink);
+      border: 1px solid var(--ink); padding: 6px 16px; border-radius: 2px;
+      text-decoration: none; letter-spacing: 0.05em; transition: background .15s;
+    }
+    .nav-cta:hover { background: rgba(26,46,52,0.07); }
+    .nav-hamburger { display: none; background: none; border: none; cursor: pointer; padding: 4px; }
+
+    /* ── PANORAMA STAGE ──────────────────────────────────────── */
+    #stage {
+      position: relative;
+      width: 100%;
+      height: var(--STAGE_H);
+      margin-top: var(--NAV_H);
+      overflow: hidden;
+      cursor: grab;
+      user-select: none;
+      background: var(--sea);
+      touch-action: pan-y; /* allow vertical page scroll on touch, we handle horizontal */
+    }
+    #stage:focus { outline: 2px solid var(--teal); outline-offset: -2px; }
+    #stage.is-dragging { cursor: grabbing; }
+
+    /* The inner track — all three layers share this coordinate space */
+    #track {
+      position: absolute; top: 0; left: 0; height: 100%;
+      will-change: transform;
+      /* width set by JS = TILE_W * N_TILES */
+    }
+
+    /* ── LAYER 1: image tiles ────────────────────────────────── */
+    #layer-tiles {
+      position: absolute; top: 0; left: 0; height: 100%;
+      display: flex;
+    }
+    .tile {
+      flex-shrink: 0;
+      height: 100%;
+      width: 2000px; /* overridden per-tile by JS if needed */
+      background: var(--sea) center/cover no-repeat;
+      position: relative;
+    }
+    /* shimmer while loading */
+    .tile.loading { background-color: var(--sea); }
+    .tile.loading::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.22) 50%, transparent 100%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+    }
+    @keyframes shimmer { to { background-position: -200% 0; } }
+
+    /* ── LAYER 2: text overlays ──────────────────────────────── */
+    #layer-text {
+      position: absolute; top: 0; left: 0; height: 100%;
+      pointer-events: none;
+    }
+
+    .txt {
+      position: absolute;
+      transform: translateX(-50%);
+      text-align: center;
+      opacity: 0;
+      transition: opacity 0.7s ease, transform 0.7s ease;
+      pointer-events: none;
+    }
+    .txt.visible { opacity: 1; }
+
+    /* Main hero title */
+    .txt-hero {
+      line-height: 1.05;
+      color: var(--ink);
+    }
+    .txt-hero .overline {
+      display: block;
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      color: #3a5560;
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 400;
+    }
+    .txt-hero .main {
+      display: block;
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(32px, 5vw, 64px);
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      color: var(--ink);
+    }
+    .txt-hero .sub {
+      display: block;
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(22px, 3.5vw, 44px);
+      font-weight: 400;
+      font-style: italic;
+      letter-spacing: 0.03em;
+      color: var(--teal);
+      margin-top: 0.15rem;
+    }
+    .txt-hero .caption {
+      display: block;
+      font-size: 12px;
+      color: #4a6e78;
+      font-weight: 300;
+      letter-spacing: 0.07em;
+      margin-top: 0.7rem;
+    }
+
+    /* Secondary text block style */
+    .txt-section {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(20px, 3vw, 36px);
+      font-weight: 400;
+      color: var(--ink);
+      line-height: 1.2;
+      text-shadow: 0 1px 16px rgba(240,236,228,0.8);
+    }
+    .txt-section em { font-style: italic; color: var(--teal); }
+
+    /* ── LAYER 3: lanternor ──────────────────────────────────── */
+    #layer-lanternor {
+      position: absolute; top: 0; left: 0; height: 100%;
+      pointer-events: none;
+    }
+    #pins-svg {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      overflow: visible;
+    }
+
+    .pin { pointer-events: all; cursor: pointer; }
+    .pin .ring {
+      opacity: 0;
+      transition: opacity 0.2s, r 0.2s;
+    }
+    .pin:hover .ring { opacity: 1; }
+    .pin .stem { transition: stroke-dashoffset 0.4s ease; }
+
+    /* ── TOOLTIP ─────────────────────────────────────────────── */
+    #tooltip {
+      position: absolute; z-index: 100;
+      pointer-events: none;
+      opacity: 0; transition: opacity 0.18s ease;
+    }
+    #tooltip.show { opacity: 1; }
+    .tt {
+      background: var(--mist);
+      border: 1px solid var(--ink);
+      padding: 14px 18px;
+      border-radius: 2px;
+      min-width: 200px; max-width: 240px;
+    }
+    .tt-num  { font-size: 10px; letter-spacing: 0.12em; color: var(--teal); text-transform: uppercase; margin-bottom: 3px; }
+    .tt-name { font-family: 'Playfair Display', serif; font-size: 17px; color: var(--ink); margin-bottom: 5px; line-height: 1.2; }
+    .tt-desc { font-size: 12px; line-height: 1.65; color: #3a5560; font-weight: 300; }
+    .tt-pills { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+    .tt-pill  { font-size: 10px; color: #1a3830; background: #b8d9ce; padding: 2px 8px; border-radius: 1px; letter-spacing: 0.03em; }
+
+    /* ── SCROLL HINT ─────────────────────────────────────────── */
+    #hint {
+      position: absolute; bottom: 1.4rem; right: 1.6rem;
+      display: flex; align-items: center; gap: 7px;
+      font-size: 11px; letter-spacing: 0.07em; color: #3a5560;
+      pointer-events: none;
+      transition: opacity 0.6s;
+    }
+    #hint.hidden { opacity: 0; }
+
+    /* progress bar */
+    #progress-bar {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      height: 2px; background: rgba(26,46,52,0.1);
+    }
+    #progress-fill {
+      height: 100%; width: 0%;
+      background: var(--teal);
+      transition: width 0.1s linear;
+    }
+
+    /* ── BELOW SECTION ───────────────────────────────────────── */
+    #below {
+      max-width: 920px; margin: 0 auto;
+      padding: 4rem 2rem 3rem;
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 2.5rem;
+    }
+    .card { border-top: 1px solid rgba(26,46,52,0.2); padding-top: 1.2rem; }
+    .card-num   { font-size: 11px; letter-spacing: 0.1em; color: var(--teal); margin-bottom: 0.5rem; }
+    .card-title { font-family: 'Playfair Display', serif; font-size: 20px; margin-bottom: 0.6rem; }
+    .card-body  { font-size: 13px; line-height: 1.75; color: #3a5560; font-weight: 300; }
+
+    /* ── CTA STRIP ───────────────────────────────────────────── */
+    #cta-strip {
+      border-top: 1px solid rgba(26,46,52,0.12);
+      padding: 3rem 2rem;
+      display: flex; gap: 1.5rem; justify-content: center; flex-wrap: wrap;
+    }
+    .cta-btn {
+      display: inline-block; padding: 13px 28px;
+      font-size: 13px; letter-spacing: 0.05em;
+      border-radius: 2px; text-decoration: none; transition: background .15s;
+    }
+    .cta-primary   { background: var(--ink); color: var(--mist); }
+    .cta-primary:hover { background: #2a4550; }
+    .cta-secondary { border: 1px solid var(--ink); color: var(--ink); }
+    .cta-secondary:hover { background: rgba(26,46,52,0.06); }
+
+    /* ── FOOTER ──────────────────────────────────────────────── */
+    footer {
+      background: var(--ink); color: rgba(240,236,228,0.55);
+      padding: 1.2rem 2rem;
+      font-size: 11px; letter-spacing: 0.05em;
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;
+    }
+    footer a { color: #7ecbb8; text-decoration: none; }
+
+    /* ── MOBILE ──────────────────────────────────────────────── */
+    @media (max-width: 640px) {
+      .nav-links { display: none; }
+      .nav-hamburger { display: block; }
+      :root { --STAGE_H: 54vw; }
+      #below { grid-template-columns: 1fr; gap: 1.8rem; padding: 2.5rem 1.2rem; }
+    }
+  </style>
 </head>
 <body>
 
-<!-- ─── Nav ──────────────────────────────────────────────── -->
-<nav>
-<a class="logo" href="#">
-<div class="logo-mark">
-<svg viewBox="0 0 28 28" fill="none">
-<circle cx="14" cy="14" r="6" fill="#d4840a"/>
-<circle cx="14" cy="14" r="10" stroke="#d4840a" stroke-width="1" stroke-dasharray="3 2.5" fill="none"/>
-<circle cx="14" cy="14" r="13" stroke="#e8c87a" stroke-width="0.5" fill="none"/>
-</svg>
-</div>
-<span class="logo-name">Tillsammans bygger vi lysande energigemenskaper över Tjörn för beredskap och gemenskap</span>
-</a>
-<button class="btn-new" onclick="openCreate()">+ Ny lanterna</button>
+<!-- ══ NAV ════════════════════════════════════════════════════════ -->
+<nav id="nav" aria-label="Huvudnavigation">
+  <a class="logo" href="/">
+    <svg width="20" height="22" viewBox="0 0 20 22" fill="none" aria-hidden="true">
+      <circle cx="10" cy="9" r="7" stroke="#1a2e34" stroke-width="1.2"/>
+      <circle cx="10" cy="9" r="3" fill="#1a2e34"/>
+      <line x1="10" y1="16" x2="10" y2="21" stroke="#1a2e34" stroke-width="1.2"/>
+      <line x1="6.5" y1="20.5" x2="13.5" y2="20.5" stroke="#1a2e34" stroke-width="0.9"/>
+    </svg>
+    <span class="logo-text">Lanternor över Tjörn</span>
+  </a>
+  <div class="nav-links">
+    <a href="bakgrund.html">Om projektet</a>
+    <a href="energigemenskaper.html">Energigemenskaper</a>
+    <a href="berattelser.html">Berättelser</a>
+    <a href="karta.html">Kartan</a>
+    <a class="nav-cta" href="delta.html">Delta nu</a>
+  </div>
+  <button class="nav-hamburger" aria-label="Öppna meny" onclick="document.querySelector('.nav-links').style.display='flex'; this.style.display='none'">
+    <svg width="20" height="14" viewBox="0 0 20 14" fill="none">
+      <line x1="0" y1="1" x2="20" y2="1" stroke="#1a2e34" stroke-width="1.5"/>
+      <line x1="0" y1="7" x2="20" y2="7" stroke="#1a2e34" stroke-width="1.5"/>
+      <line x1="0" y1="13" x2="20" y2="13" stroke="#1a2e34" stroke-width="1.5"/>
+    </svg>
+  </button>
 </nav>
 
-<!-- ─── Info-meny ────────────────────────────────────────── -->
-<div class="info-nav">
-  <button class="info-link" onclick="toggleDrawer('bakgrund')">Bakgrund</button>
-  <button class="info-link" onclick="toggleDrawer('varfor')">Varför</button>
-  <button class="info-link" onclick="toggleDrawer('om')">Om energigemenskaper</button>
-  <button class="info-link" onclick="toggleDrawer('berattelser')">Berättelser</button>
-  <button class="info-link" onclick="toggleDrawer('delta')">Såhär kan du delta</button>
-</div>
+<!-- ══ PANORAMA STAGE ══════════════════════════════════════════════ -->
+<div id="stage" tabindex="0" role="img" aria-label="Panoramabild av Tjörns kustlinje — panorera högerut för att utforska ön">
 
-<!-- ─── Info-drawer ───────────────────────────────────────── -->
-<div class="info-drawer" id="info-drawer">
-  <div class="drawer-content" id="drawer-bakgrund">
-    <div class="drawer-text">
-      <h3>Bakgrund</h3>
-      <p>Tjörn saknar idag egna strukturer för lokal energidelning. Vid elavbrott eller kris är ön helt beroende av externa insatser. Lanternor över Tjörn växte fram ur Egnahemsfabrikens arbete med hållbar samhällsutveckling — och ur en övertygelse om att energiomställningen blir starkare när den är synlig, social och förankrad i lokalsamhället.</p>
+  <div id="track">
+
+    <!-- LAYER 1: tiles (filled by JS) -->
+    <div id="layer-tiles"></div>
+
+    <!-- LAYER 2: text overlays
+         data-x  = left edge position in full panorama px
+         data-y  = top position in panorama px (at native 823px height)
+         data-trigger = panorama px offset at which block fades in
+         data-hide    = panorama px offset at which block fades out (optional)
+    -->
+    <div id="layer-text">
+
+      <!-- Hero: appears right at the start, centered over Tjörnbron (del1, ~x=1000) -->
+      <div class="txt txt-hero"
+           data-x="1000"
+           data-y="80"
+           data-trigger="0"
+           data-hide="2400">
+        <span class="overline">Egnahemsfabriken Tjörn</span>
+        <span class="main">TJÖRN</span>
+        <span class="sub">Möjligheternas ö</span>
+        <span class="caption">Energigemenskaper för omställning och beredskap</span>
+      </div>
+
+      <!-- Appears over del3 (byn vid kusten, x≈4000–6000) -->
+      <div class="txt txt-section"
+           data-x="5000"
+           data-y="100"
+           data-trigger="3200"
+           data-hide="6800">
+        Levande byar,<br><em>delade resurser</em>
+      </div>
+
+      <!-- Appears over del5 (jordbruk, x≈8000–10000) -->
+      <div class="txt txt-section"
+           data-x="9000"
+           data-y="90"
+           data-trigger="7200"
+           data-hide="10800">
+        Granit, jord<br><em>och gemenskap</em>
+      </div>
+
+      <!-- Appears over del6 (Skärhamn, x≈10000–12000) -->
+      <div class="txt txt-section"
+           data-x="11000"
+           data-y="80"
+           data-trigger="9400"
+           data-hide="12200">
+        En lanterna<br><em>nära dig</em>
+      </div>
+
     </div>
-    <a class="drawer-link" href="bakgrund.html">Läs mer →</a>
-  </div>
-  <div class="drawer-content" id="drawer-varfor">
-    <div class="drawer-text">
-      <h3>Varför</h3>
-      <p>I Europa finns redan över 9 000 energigemenskaper. I Sverige är konceptet nytt — och Tjörn har möjlighet att visa vägen. Lanternorna kombinerar teknik med kultur och gemenskap, och når en bredare grupp än traditionella energiprojekt. Målet är ett lokalsamhälle som klarar sig bättre i vardagen och i kris.</p>
+
+    <!-- LAYER 3: lanternor
+         Position these once you know where they fit in the illustration.
+         data-x / data-y use full-panorama pixel coordinates.
+         Tip: open the stitched panorama in Photoshop/Figma, note pixel x-position
+         of the landmark, then set data-x to that value and data-y to ~550–650
+         (just above the waterline).
+    -->
+    <div id="layer-lanternor">
+      <svg id="pins-svg" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+
+        <!-- Lanterna Säby — placeholder x: roughly middle of del2 (skärgård) -->
+        <g class="pin"
+           data-x="3200" data-y="560"
+           data-num="Lanterna 01"
+           data-name="Lanterna Säby"
+           data-desc="Den första lanternan. Solceller, skulptur och laddstation, byggd av deltagarna i Vi bygger tillsammans VT 2025."
+           data-pills="Laddstation,Skulptur,Solceller,Säby">
+          <line class="stem" x1="0" y1="0" x2="0" y2="-42" stroke="#1a2e34" stroke-width="1.2"/>
+          <circle class="ring" cx="0" cy="-42" r="18" fill="rgba(46,110,90,0.15)" stroke="#2e6e5a" stroke-width="0.8"/>
+          <!-- icon: circle (energihubb) -->
+          <circle cx="0" cy="-42" r="10" fill="#f0ece4" stroke="#1a2e34" stroke-width="1.2"/>
+          <circle cx="0" cy="-42" r="3.5" fill="#1a2e34"/>
+        </g>
+
+        <!-- Lanterna Egnahem — del3 area -->
+        <g class="pin"
+           data-x="5400" data-y="540"
+           data-num="Lanterna 02"
+           data-name="Lanterna Egnahem"
+           data-desc="Energitrygghetspunkt i Svanvik. Solceller, batterilagring och mötesplats för gemensam beredskap och vardag."
+           data-pills="Energitrygghet,Batterilagring,Svanvik">
+          <line class="stem" x1="0" y1="0" x2="0" y2="-42" stroke="#1a2e34" stroke-width="1.2"/>
+          <circle class="ring" cx="0" cy="-42" r="18" fill="rgba(46,110,90,0.15)" stroke="#2e6e5a" stroke-width="0.8"/>
+          <!-- icon: square (mötesplats) -->
+          <rect x="-10" y="-54" width="20" height="20" rx="2" fill="#f0ece4" stroke="#1a2e34" stroke-width="1.2"/>
+          <rect x="-4"  y="-48" width="8"  height="8"  rx="1" fill="#1a2e34"/>
+        </g>
+
+        <!-- Skärhamns lanterna — del6 (Skärhamn) -->
+        <g class="pin"
+           data-x="10800" data-y="520"
+           data-num="Lanterna 03"
+           data-name="Skärhamns lanterna"
+           data-desc="Skulptur, servicepunkt och turistinfo i Skärhamns centrum. Bro mellan lokalbefolkning och besökare."
+           data-pills="Servicepunkt,Kultur,Skärhamn">
+          <line class="stem" x1="0" y1="0" x2="0" y2="-42" stroke="#1a2e34" stroke-width="1.2"/>
+          <circle class="ring" cx="0" cy="-42" r="18" fill="rgba(46,110,90,0.15)" stroke="#2e6e5a" stroke-width="0.8"/>
+          <!-- icon: triangle (skulptur) -->
+          <polygon points="0,-58 11,-40 -11,-40" fill="#f0ece4" stroke="#1a2e34" stroke-width="1.2"/>
+          <circle cx="0" cy="-48" r="3" fill="#1a2e34"/>
+        </g>
+
+        <!-- Rönnängs lanterna — between del4 and del5 -->
+        <g class="pin"
+           data-x="7800" data-y="555"
+           data-num="Lanterna 04"
+           data-name="Rönnängs lanterna"
+           data-desc="En rastplats vid havet. Vandrare, cyklister och grannar möts under solpaneler. Gemensam laddning och vila."
+           data-pills="Rastplats,Laddning,Rönnäng">
+          <line class="stem" x1="0" y1="0" x2="0" y2="-42" stroke="#1a2e34" stroke-width="1.2"/>
+          <circle class="ring" cx="0" cy="-42" r="18" fill="rgba(46,110,90,0.15)" stroke="#2e6e5a" stroke-width="0.8"/>
+          <!-- icon: lantern arch (rastplats) -->
+          <path d="M-9,-54 L-9,-38 L9,-38 L9,-54 Q0,-63 -9,-54Z" fill="#f0ece4" stroke="#1a2e34" stroke-width="1.2"/>
+          <circle cx="0" cy="-47" r="3" fill="#1a2e34"/>
+        </g>
+
+      </svg>
     </div>
-    <a class="drawer-link" href="varfor.html">Läs mer →</a>
-  </div>
-  <div class="drawer-content" id="drawer-om">
-    <div class="drawer-text">
-      <h3>Om energigemenskaper</h3>
-      <p>En energigemenskap är en grupp människor — grannar, företag, föreningar — som gemensamt äger och delar energi. Varje lanterna på Tjörn är en sådan gemenskap: finansierad, ägd och driven av de som bor och verkar närmast den. Skulpturen genererar el via solpaneler, lagrar energi och fungerar som trygghetspunkt vid kris.</p>
+
+  </div><!-- /track -->
+
+  <!-- Tooltip (outside track — stays in screen coords) -->
+  <div id="tooltip">
+    <div class="tt">
+      <div class="tt-num"  id="tt-num"></div>
+      <div class="tt-name" id="tt-name"></div>
+      <div class="tt-desc" id="tt-desc"></div>
+      <div class="tt-pills" id="tt-pills"></div>
     </div>
-    <a class="drawer-link" href="energigemenskaper.html">Läs mer →</a>
   </div>
-  <div class="drawer-content" id="drawer-berattelser">
-    <div class="drawer-text">
-      <h3>Berättelser</h3>
-      <p>Projektet drivs av Egnahemsfabriken Tjörn — en ekonomisk förening med över 550 medlemmar, grundad 2018 som en plattform för byggande och lokal samhällsutveckling. Runt dem samlas konstnärer, energiexperter, kommunen och engagerade Tjörnbor i ett unikt samarbete där kultur och energi möts.</p>
-    </div>
-    <a class="drawer-link" href="berattelser.html">Läs mer →</a>
+
+  <!-- Scroll hint -->
+  <div id="hint" aria-hidden="true">
+    <svg width="22" height="10" viewBox="0 0 22 10" fill="none">
+      <path d="M1 5 L19 5 M14 1 L19 5 L14 9" stroke="#3a5560" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    Panorera högerut
   </div>
-  <div class="drawer-content" id="drawer-delta">
-    <div class="drawer-text">
-      <h3>Såhär kan du delta</h3>
-      <p>Du kan vara med på två sätt: anslut dig till en befintlig lanterna nära dig och bli del av den gemenskapen — eller ta initiativ till en ny lanterna på en plats du brinner för. Det räcker med din e-postadress för att komma igång. Tillsammans bygger vi ett lysande, resilient Tjörn.</p>
-    </div>
-    <a class="drawer-link" href="#" onclick="openCreate(); closeDrawer(); return false;">Starta en lanterna →</a>
+
+  <!-- Progress bar -->
+  <div id="progress-bar" aria-hidden="true">
+    <div id="progress-fill"></div>
   </div>
+
+</div><!-- /stage -->
+
+<!-- ══ BELOW ════════════════════════════════════════════════════════ -->
+<section id="below" aria-label="Projektets tre dimensioner">
+  <div class="card">
+    <div class="card-num">01 — Konst</div>
+    <h2 class="card-title">Skulpturer i landskapet</h2>
+    <p class="card-body">Varje lanterna är ett unikt konstverk av Johan Bloom — en skulptur som berikar Tjörns landskap och samlar människor kring sig.</p>
+  </div>
+  <div class="card">
+    <div class="card-num">02 — Energi</div>
+    <h2 class="card-title">Lokal energitrygghet</h2>
+    <p class="card-body">Solceller och batterier ger beredskap oavsett om strömmen går. Laddning för cyklar, fordon och enheter — alltid tillgänglig.</p>
+  </div>
+  <div class="card">
+    <div class="card-num">03 — Gemenskap</div>
+    <h2 class="card-title">Tillsammansbyggt</h2>
+    <p class="card-body">En lokal förening äger sin lanterna. Ni bestämmer inriktningen — rastplats, odling, kultur eller laddpunkt. Vi hjälper er dit.</p>
+  </div>
+</section>
+
+<div id="cta-strip">
+  <a class="cta-btn cta-primary"  href="karta.html">Hitta en lanterna på kartan</a>
+  <a class="cta-btn cta-secondary" href="delta.html">Starta en ny lanterna</a>
 </div>
 
-<!-- ─── Hero ─────────────────────────────────────────────── -->
-<div class="hero">
-<div class="hero-inner">
-<div class="hero-eyebrow">Energigemenskap · Konst · Beredskap</div>
-<h1>Lanternor över <em>Tjörn</em></h1>
-<p class="hero-sub">Solenergiskulpturer som lyser upp lokalsamhället — varje lanterna är på samma gång ett konstverk, en lokal energihubb och en gemenskap av grannar, företag och föreningar som tillsammans tar ansvar för sin energiförsörjning.</p>
-<div class="stats-row">
-<div><div class="stat-num" id="s-total">—</div><div class="stat-lbl">Lanternor</div></div>
-<div><div class="stat-num" id="s-members">—</div><div class="stat-lbl">Anmälda</div></div>
-<div><div class="stat-num" id="s-spots">—</div><div class="stat-lbl">Lediga platser</div></div>
-</div>
-</div>
-</div>
+<footer>
+  <span>Lanternor över Tjörn &nbsp;·&nbsp; Egnahemsfabriken Tjörn &nbsp;·&nbsp; Finansierat av Energimyndigheten</span>
+  <a href="mailto:erik@egnahemsfabriken.se">erik@egnahemsfabriken.se</a>
+</footer>
 
-<!-- ─── Main: map + sidebar ──────────────────────────────── -->
-<div class="main">
-<div class="map-panel">
-<div id="map"></div>
-</div>
-<div class="sidebar">
-<div class="sidebar-header">
-<div class="sidebar-title">Lanternor i nätverket</div>
-</div>
-<div class="filter-row">
-<button class="chip active" onclick="setFilter('alla', this)">Alla</button>
-<button class="chip" onclick="setFilter('boende', this)">Boende</button>
-<button class="chip" onclick="setFilter('laddstation', this)">Laddning</button>
-<button class="chip" onclick="setFilter('byteshylla', this)">Byteshylla</button>
-<button class="chip" onclick="setFilter('rastplats', this)">Rastplats</button>
-<button class="chip" onclick="setFilter('väntplats', this)">Väntplats</button>
-<button class="chip" onclick="setFilter('lediga', this)">Lediga</button>
-</div>
-<div class="lantern-list" id="lantern-list">
-<div class="loading">
-<div class="spinner"></div>
-H mtar lanternor…
-</div>
-</div>
-</div>
-</div>
-
-<!-- ─── Modal: Skapa ny lanterna ─────────────────────────── -->
-<div class="overlay" id="create-overlay">
-<div class="modal">
-<div class="modal-head">
-<h2>Skapa ny lanterna</h2>
-<button class="modal-close" onclick="closeCreate()">×</button>
-</div>
-<div class="modal-body">
-<div class="form-group">
-<label class="form-label">Namn på lanternan <span>*</span></label>
-<input type="text" id="f-namn" placeholder="t.ex. Sollanternan i Haga"/>
-</div>
-<div class="form-group">
-<label class="form-label">Beskrivning</label>
-<textarea id="f-beskr" placeholder="Beskriv gemenskapens syfte och vision…"></textarea>
-</div>
-<div class="form-group">
-<label class="form-label">Plats / område <span>*</span></label>
-<input type="text" id="f-plats" placeholder="t.ex. Haga, Göteborg"/>
-</div>
-<div class="form-group">
-<label class="form-label">Markera platsen på kartan <span>*</span></label>
-<div id="pick-map"></div>
-<div class="pick-hint" id="pick-hint">Klicka på kartan för att placera lanternan</div>
-</div>
-<div class="form-row2">
-<div class="form-group">
-<label class="form-label">Max antal platser <span>*</span></label>
-<input type="number" id="f-spots" min="1" max="999" placeholder="20"/>
-</div>
-<div class="form-group">
-<label class="form-label">Din e-post <span>*</span></label>
-<input type="email" id="f-email" placeholder="du@exempel.se"/>
-</div>
-</div>
-<div class="form-group">
-<label class="form-label">Inriktning</label>
-<div class="checkbox-grid">
-<label class="cb-item"><input type="checkbox" value="boende"> Boende</label>
-<label class="cb-item"><input type="checkbox" value="laddstation"> Laddstation</label>
-<label class="cb-item"><input type="checkbox" value="byteshylla"> Byteshylla</label>
-<label class="cb-item"><input type="checkbox" value="rastplats"> Rastplats</label>
-<label class="cb-item"><input type="checkbox" value="väntplats"> Väntplats</label>
-<label class="cb-item"><input type="checkbox" value="odling"> Odling</label>
-<label class="cb-item"><input type="checkbox" value="kultur"> Kultur & evenemang</label>
-<label class="cb-item"><input type="checkbox" value="energi"> Energidelning</label>
-</div>
-</div>
-</div>
-<div class="modal-foot">
-<button class="btn-cancel" onclick="closeCreate()">Avbryt</button>
-<button class="btn-primary" id="btn-submit" onclick="submitCreate()">Publicera lanterna</button>
-</div>
-</div>
-</div>
-
-<!-- ─── Modal: Anmäl dig ──────────────────────────────────── -->
-<div class="overlay" id="join-overlay">
-<div class="modal" style="max-width: 420px;">
-<div class="modal-head">
-<h2 id="join-title">Anmäl dig</h2>
-<button class="modal-close" onclick="closeJoin()">×</button>
-</div>
-<div class="modal-body">
-<p id="join-desc" style="font-size: 0.84rem; color: var(--text-mid); margin-bottom: 1rem;"></p>
-<div class="form-group">
-<label class="form-label">Ditt namn</label>
-<input type="text" id="j-namn" placeholder="Förnamn Efternamn"/>
-</div>
-<div class="form-group">
-<label class="form-label">E-postadress <span>*</span></label>
-<input type="email" id="j-email" placeholder="du@exempel.se"/>
-</div>
-</div>
-<div class="modal-foot">
-<button class="btn-cancel" onclick="closeJoin()">Avbryt</button>
-<button class="btn-primary" id="btn-join-submit" onclick="submitJoin()">Anmäl mig</button>
-</div>
-</div>
-</div>
-
-<!-- ─── Toast ─────────────────────────────────────────────── -->
-<div class="toast" id="toast"></div>
-
-<!-- ─── Scripts ───────────────────────────────────────────── -->
-<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js"></script>
-<script src="js/map.js"></script>
-<script src="js/list.js"></script>
-<script src="js/create.js"></script>
-<script src="js/join.js"></script>
-<script src="js/app.js"></script>
-
+<!-- ══ SCRIPT ═══════════════════════════════════════════════════════ -->
 <script>
-let activeDrawer = null;
+/* ─────────────────────────────────────────────────────────────────
+   CONFIG — uppdatera när du lägger till fler tiles
+   ───────────────────────────────────────────────────────────────── */
+const CFG = {
+  tileW:     2000,          // px bredd per tile (alla dina är 2000)
+  tileH:     823,           // px höjd per tile
+  nTiles:    6,             // antal tiles just nu
+  tilePath:  i => `images/tile0${i}.jpg`, // tile01.jpg … tile06.jpg
+  lazyMargin: 1200,         // hur många px i förväg en tile laddas
+};
 
-function toggleDrawer(id) {
-  const drawer = document.getElementById('info-drawer');
-  const buttons = document.querySelectorAll('.info-link');
+const TOTAL_W = CFG.tileW * CFG.nTiles; // 12 000 px
 
-  if (activeDrawer === id) {
-    closeDrawer();
-    return;
+/* ─── BUILD TILE ELEMENTS ──────────────────────────────────────── */
+const layerTiles = document.getElementById('layer-tiles');
+const tileEls = [];
+
+for (let i = 1; i <= CFG.nTiles; i++) {
+  const d = document.createElement('div');
+  d.className = 'tile loading';
+  d.style.width  = CFG.tileW + 'px';
+  d.style.height = CFG.tileH + 'px';
+  d.dataset.i      = i;
+  d.dataset.loaded = 'false';
+  layerTiles.appendChild(d);
+  tileEls.push(d);
+}
+
+function loadTile(el) {
+  if (el.dataset.loaded !== 'false') return;
+  el.dataset.loaded = 'pending';
+  const i   = parseInt(el.dataset.i);
+  const img = new Image();
+  img.onload = () => {
+    el.style.backgroundImage = `url(${CFG.tilePath(i)})`;
+    el.classList.remove('loading');
+    el.dataset.loaded = 'done';
+  };
+  img.onerror = () => { el.dataset.loaded = 'error'; };
+  img.src = CFG.tilePath(i);
+}
+
+function lazyCheck(offset) {
+  const vw = stage.offsetWidth;
+  tileEls.forEach((el, idx) => {
+    const left  = idx * CFG.tileW;
+    const right = left + CFG.tileW;
+    if (right  > offset - CFG.lazyMargin &&
+        left   < offset + vw + CFG.lazyMargin) {
+      loadTile(el);
+    }
+  });
+}
+
+/* ─── LAYER WIDTHS ─────────────────────────────────────────────── */
+const track         = document.getElementById('track');
+const layerText     = document.getElementById('layer-text');
+const layerLanternor = document.getElementById('layer-lanternor');
+track.style.width        = TOTAL_W + 'px';
+layerText.style.width    = TOTAL_W + 'px';
+layerLanternor.style.width = TOTAL_W + 'px';
+
+/* ─── TEXT BLOCKS ──────────────────────────────────────────────── */
+const txtBlocks = Array.from(document.querySelectorAll('.txt'));
+
+txtBlocks.forEach(el => {
+  // Scale y coordinate from native 823px height to current stage height
+  const nativeX = parseFloat(el.dataset.x) || 0;
+  const nativeY = parseFloat(el.dataset.y) || 0;
+  el.style.left = nativeX + 'px';
+  // y will be set dynamically on resize too
+  el._nativeY = nativeY;
+  el._trigger = parseFloat(el.dataset.trigger) || 0;
+  el._hide    = parseFloat(el.dataset.hide)    || Infinity;
+});
+
+function scaleY(nativeY) {
+  return nativeY * (stage.offsetHeight / CFG.tileH);
+}
+
+function positionTextBlocks() {
+  txtBlocks.forEach(el => {
+    el.style.top = scaleY(el._nativeY) + 'px';
+  });
+}
+
+function updateText(offset) {
+  const vw = stage.offsetWidth;
+  txtBlocks.forEach(el => {
+    const visible = offset + vw > el._trigger && offset < el._hide;
+    el.classList.toggle('visible', visible);
+  });
+}
+
+/* ─── PIN LAYER ────────────────────────────────────────────────── */
+const pinsSvg = document.getElementById('pins-svg');
+const pins    = Array.from(document.querySelectorAll('.pin'));
+
+function scalePins() {
+  // The SVG covers the full TOTAL_W × stage height.
+  // Pins use native panorama x and native-height y.
+  // We scale y to match stage height.
+  const sh = stage.offsetHeight;
+  const yScale = sh / CFG.tileH;
+  pins.forEach(p => {
+    const px = parseFloat(p.dataset.x);
+    const py = parseFloat(p.dataset.y) * yScale;
+    p.setAttribute('transform', `translate(${px}, ${py})`);
+  });
+  // SVG viewBox matches actual dimensions
+  pinsSvg.setAttribute('viewBox', `0 0 ${TOTAL_W} ${stage.offsetHeight}`);
+}
+
+/* ─── TOOLTIP ──────────────────────────────────────────────────── */
+const stage   = document.getElementById('stage');
+const tooltip = document.getElementById('tooltip');
+
+function showTT(pin, offset) {
+  document.getElementById('tt-num').textContent  = pin.dataset.num  || '';
+  document.getElementById('tt-name').textContent = pin.dataset.name || '';
+  document.getElementById('tt-desc').textContent = pin.dataset.desc || '';
+  const pills = (pin.dataset.pills || '').split(',').filter(Boolean);
+  document.getElementById('tt-pills').innerHTML =
+    pills.map(p => `<span class="tt-pill">${p.trim()}</span>`).join('');
+
+  const px  = parseFloat(pin.dataset.x);
+  const pyN = parseFloat(pin.dataset.y);
+  const py  = pyN * (stage.offsetHeight / CFG.tileH) - 42;
+  const sx  = px - offset;
+  const stW = stage.offsetWidth;
+  const ttW = 248;
+  const left = (sx + 18 + ttW > stW) ? sx - ttW - 18 : sx + 18;
+  tooltip.style.left = Math.max(4, Math.min(stW - ttW - 4, left)) + 'px';
+  tooltip.style.top  = Math.max(8, py - 70) + 'px';
+  tooltip.classList.add('show');
+}
+function hideTT() { tooltip.classList.remove('show'); }
+
+pins.forEach(p => {
+  p.addEventListener('mouseenter', () => showTT(p, currentOffset));
+  p.addEventListener('mouseleave', hideTT);
+  p.addEventListener('click', () => {
+    window.location.href = `karta.html`;
+  });
+  // touch tap
+  p.addEventListener('touchend', e => {
+    e.preventDefault();
+    showTT(p, currentOffset);
+    setTimeout(hideTT, 3000);
+  });
+});
+
+/* ─── PROGRESS BAR ─────────────────────────────────────────────── */
+const progressFill = document.getElementById('progress-fill');
+function updateProgress(offset) {
+  const pct = TOTAL_W > stage.offsetWidth
+    ? (offset / (TOTAL_W - stage.offsetWidth)) * 100
+    : 0;
+  progressFill.style.width = pct + '%';
+}
+
+/* ─── PANNING ──────────────────────────────────────────────────── */
+let currentOffset = 0;
+let targetOffset  = 0;
+let rafId         = null;
+let dragging      = false;
+let dragStartX    = 0;
+let dragStartOff  = 0;
+
+const hint = document.getElementById('hint');
+
+function maxOffset() { return Math.max(0, TOTAL_W - stage.offsetWidth); }
+
+function applyOffset(o) {
+  currentOffset = Math.max(0, Math.min(maxOffset(), o));
+  track.style.transform = `translateX(${-currentOffset}px)`;
+  lazyCheck(currentOffset);
+  updateText(currentOffset);
+  updateProgress(currentOffset);
+  if (currentOffset > 100) hint.classList.add('hidden');
+  // keep tooltip in sync
+  if (tooltip.classList.contains('show')) {
+    const active = pins.find(p => p.matches(':hover'));
+    if (active) showTT(active, currentOffset);
   }
-
-  document.querySelectorAll('.drawer-content').forEach(el => el.style.display = 'none');
-  document.getElementById('drawer-' + id).style.display = 'flex';
-
-  buttons.forEach(b => b.classList.remove('active'));
-  event.currentTarget.classList.add('active');
-
-  drawer.classList.add('open');
-  activeDrawer = id;
 }
 
-function closeDrawer() {
-  document.getElementById('info-drawer').classList.remove('open');
-  document.querySelectorAll('.info-link').forEach(b => b.classList.remove('active'));
-  activeDrawer = null;
+function lerp(a, b, t) { return a + (b - a) * t; }
+
+function animTo() {
+  currentOffset = lerp(currentOffset, targetOffset, 0.08);
+  applyOffset(currentOffset);
+  if (Math.abs(currentOffset - targetOffset) > 0.4) {
+    rafId = requestAnimationFrame(animTo);
+  } else {
+    applyOffset(targetOffset);
+    rafId = null;
+  }
 }
 
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
+function setTarget(o) {
+  targetOffset = Math.max(0, Math.min(maxOffset(), o));
+  if (rafId) cancelAnimationFrame(rafId);
+  rafId = requestAnimationFrame(animTo);
+}
+
+/* Mouse drag */
+stage.addEventListener('mousedown', e => {
+  dragging = true;
+  dragStartX   = e.clientX;
+  dragStartOff = currentOffset;
+  stage.classList.add('is-dragging');
+  if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+});
+window.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  const dx = dragStartX - e.clientX;
+  applyOffset(dragStartOff + dx);
+  targetOffset = currentOffset;
+});
+window.addEventListener('mouseup', () => {
+  dragging = false;
+  stage.classList.remove('is-dragging');
+});
+
+/* Wheel / trackpad */
+stage.addEventListener('wheel', e => {
+  e.preventDefault();
+  setTarget(targetOffset + e.deltaX + e.deltaY * 0.6);
+}, { passive: false });
+
+/* Touch */
+let touchX = 0, touchOff = 0;
+stage.addEventListener('touchstart', e => {
+  touchX   = e.touches[0].clientX;
+  touchOff = currentOffset;
+  if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+}, { passive: true });
+stage.addEventListener('touchmove', e => {
+  const dx = touchX - e.touches[0].clientX;
+  applyOffset(touchOff + dx);
+  targetOffset = currentOffset;
+}, { passive: true });
+
+/* Keyboard */
+stage.addEventListener('keydown', e => {
+  const step = 300;
+  if (e.key === 'ArrowRight') setTarget(targetOffset + step);
+  if (e.key === 'ArrowLeft')  setTarget(targetOffset - step);
+});
+
+/* ─── RESIZE ───────────────────────────────────────────────────── */
+function onResize() {
+  positionTextBlocks();
+  scalePins();
+  applyOffset(currentOffset);
+}
+window.addEventListener('resize', onResize);
+
+/* ─── INIT ─────────────────────────────────────────────────────── */
+positionTextBlocks();
+scalePins();
+lazyCheck(0);
+updateText(0);
+
+// Hide hint after 6 s
+setTimeout(() => hint.classList.add('hidden'), 6000);
 </script>
 
 </body>

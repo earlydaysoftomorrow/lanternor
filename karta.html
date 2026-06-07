@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Lanternan — Energigemenskaper</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css"/>
+<link rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+
+<!-- ─── Nav ──────────────────────────────────────────────── -->
+<nav>
+<a class="logo" href="#">
+<div class="logo-mark">
+<svg viewBox="0 0 28 28" fill="none">
+<circle cx="14" cy="14" r="6" fill="#d4840a"/>
+<circle cx="14" cy="14" r="10" stroke="#d4840a" stroke-width="1" stroke-dasharray="3 2.5" fill="none"/>
+<circle cx="14" cy="14" r="13" stroke="#e8c87a" stroke-width="0.5" fill="none"/>
+</svg>
+</div>
+<span class="logo-name">Tillsammans bygger vi lysande energigemenskaper över Tjörn för beredskap och gemenskap</span>
+</a>
+<button class="btn-new" onclick="openCreate()">+ Ny lanterna</button>
+</nav>
+
+<!-- ─── Info-meny ────────────────────────────────────────── -->
+<div class="info-nav">
+  <button class="info-link" onclick="toggleDrawer('bakgrund')">Bakgrund</button>
+  <button class="info-link" onclick="toggleDrawer('varfor')">Varför</button>
+  <button class="info-link" onclick="toggleDrawer('om')">Om energigemenskaper</button>
+  <button class="info-link" onclick="toggleDrawer('berattelser')">Berättelser</button>
+  <button class="info-link" onclick="toggleDrawer('delta')">Såhär kan du delta</button>
+</div>
+
+<!-- ─── Info-drawer ───────────────────────────────────────── -->
+<div class="info-drawer" id="info-drawer">
+  <div class="drawer-content" id="drawer-bakgrund">
+    <div class="drawer-text">
+      <h3>Bakgrund</h3>
+      <p>Tjörn saknar idag egna strukturer för lokal energidelning. Vid elavbrott eller kris är ön helt beroende av externa insatser. Lanternor över Tjörn växte fram ur Egnahemsfabrikens arbete med hållbar samhällsutveckling — och ur en övertygelse om att energiomställningen blir starkare när den är synlig, social och förankrad i lokalsamhället.</p>
+    </div>
+    <a class="drawer-link" href="bakgrund.html">Läs mer →</a>
+  </div>
+  <div class="drawer-content" id="drawer-varfor">
+    <div class="drawer-text">
+      <h3>Varför</h3>
+      <p>I Europa finns redan över 9 000 energigemenskaper. I Sverige är konceptet nytt — och Tjörn har möjlighet att visa vägen. Lanternorna kombinerar teknik med kultur och gemenskap, och når en bredare grupp än traditionella energiprojekt. Målet är ett lokalsamhälle som klarar sig bättre i vardagen och i kris.</p>
+    </div>
+    <a class="drawer-link" href="varfor.html">Läs mer →</a>
+  </div>
+  <div class="drawer-content" id="drawer-om">
+    <div class="drawer-text">
+      <h3>Om energigemenskaper</h3>
+      <p>En energigemenskap är en grupp människor — grannar, företag, föreningar — som gemensamt äger och delar energi. Varje lanterna på Tjörn är en sådan gemenskap: finansierad, ägd och driven av de som bor och verkar närmast den. Skulpturen genererar el via solpaneler, lagrar energi och fungerar som trygghetspunkt vid kris.</p>
+    </div>
+    <a class="drawer-link" href="energigemenskaper.html">Läs mer →</a>
+  </div>
+  <div class="drawer-content" id="drawer-berattelser">
+    <div class="drawer-text">
+      <h3>Berättelser</h3>
+      <p>Projektet drivs av Egnahemsfabriken Tjörn — en ekonomisk förening med över 550 medlemmar, grundad 2018 som en plattform för byggande och lokal samhällsutveckling. Runt dem samlas konstnärer, energiexperter, kommunen och engagerade Tjörnbor i ett unikt samarbete där kultur och energi möts.</p>
+    </div>
+    <a class="drawer-link" href="berattelser.html">Läs mer →</a>
+  </div>
+  <div class="drawer-content" id="drawer-delta">
+    <div class="drawer-text">
+      <h3>Såhär kan du delta</h3>
+      <p>Du kan vara med på två sätt: anslut dig till en befintlig lanterna nära dig och bli del av den gemenskapen — eller ta initiativ till en ny lanterna på en plats du brinner för. Det räcker med din e-postadress för att komma igång. Tillsammans bygger vi ett lysande, resilient Tjörn.</p>
+    </div>
+    <a class="drawer-link" href="#" onclick="openCreate(); closeDrawer(); return false;">Starta en lanterna →</a>
+  </div>
+</div>
+
+<!-- ─── Hero ─────────────────────────────────────────────── -->
+<div class="hero">
+<div class="hero-inner">
+<div class="hero-eyebrow">Energigemenskap · Konst · Beredskap</div>
+<h1>Lanternor över <em>Tjörn</em></h1>
+<p class="hero-sub">Solenergiskulpturer som lyser upp lokalsamhället — varje lanterna är på samma gång ett konstverk, en lokal energihubb och en gemenskap av grannar, företag och föreningar som tillsammans tar ansvar för sin energiförsörjning.</p>
+<div class="stats-row">
+<div><div class="stat-num" id="s-total">—</div><div class="stat-lbl">Lanternor</div></div>
+<div><div class="stat-num" id="s-members">—</div><div class="stat-lbl">Anmälda</div></div>
+<div><div class="stat-num" id="s-spots">—</div><div class="stat-lbl">Lediga platser</div></div>
+</div>
+</div>
+</div>
+
+<!-- ─── Main: map + sidebar ──────────────────────────────── -->
+<div class="main">
+<div class="map-panel">
+<div id="map"></div>
+</div>
+<div class="sidebar">
+<div class="sidebar-header">
+<div class="sidebar-title">Hitta din lanterna</div>
+</div>
+<div class="filter-row">
+<button class="chip active" onclick="setFilter('alla', this)">Alla</button>
+<button class="chip" onclick="setFilter('boende', this)">Boende</button>
+<button class="chip" onclick="setFilter('laddstation', this)">Laddning</button>
+<button class="chip" onclick="setFilter('byteshylla', this)">Byteshylla</button>
+<button class="chip" onclick="setFilter('rastplats', this)">Rastplats</button>
+<button class="chip" onclick="setFilter('väntplats', this)">Väntplats</button>
+<button class="chip" onclick="setFilter('lediga', this)">Lediga</button>
+</div>
+<div class="lantern-list" id="lantern-list">
+<div class="loading">
+<div class="spinner"></div>
+H mtar lanternor…
+</div>
+</div>
+</div>
+</div>
+
+<!-- ─── Modal: Skapa ny lanterna ─────────────────────────── -->
+<div class="overlay" id="create-overlay">
+<div class="modal">
+<div class="modal-head">
+<h2>Skapa ny lanterna</h2>
+<button class="modal-close" onclick="closeCreate()">×</button>
+</div>
+<div class="modal-body">
+<div class="form-group">
+<label class="form-label">Namn på lanternan <span>*</span></label>
+<input type="text" id="f-namn" placeholder="t.ex. Sollanternan i Haga"/>
+</div>
+<div class="form-group">
+<label class="form-label">Beskrivning</label>
+<textarea id="f-beskr" placeholder="Beskriv gemenskapens syfte och vision…"></textarea>
+</div>
+<div class="form-group">
+<label class="form-label">Plats / område <span>*</span></label>
+<input type="text" id="f-plats" placeholder="t.ex. Haga, Göteborg"/>
+</div>
+<div class="form-group">
+<label class="form-label">Markera platsen på kartan <span>*</span></label>
+<div id="pick-map"></div>
+<div class="pick-hint" id="pick-hint">Klicka på kartan för att placera lanternan</div>
+</div>
+<div class="form-row2">
+<div class="form-group">
+<label class="form-label">Max antal platser <span>*</span></label>
+<input type="number" id="f-spots" min="1" max="999" placeholder="20"/>
+</div>
+<div class="form-group">
+<label class="form-label">Din e-post <span>*</span></label>
+<input type="email" id="f-email" placeholder="du@exempel.se"/>
+</div>
+</div>
+<div class="form-group">
+<label class="form-label">Inriktning</label>
+<div class="checkbox-grid">
+<label class="cb-item"><input type="checkbox" value="boende"> Boende</label>
+<label class="cb-item"><input type="checkbox" value="laddstation"> Laddstation</label>
+<label class="cb-item"><input type="checkbox" value="byteshylla"> Byteshylla</label>
+<label class="cb-item"><input type="checkbox" value="rastplats"> Rastplats</label>
+<label class="cb-item"><input type="checkbox" value="väntplats"> Väntplats</label>
+<label class="cb-item"><input type="checkbox" value="odling"> Odling</label>
+<label class="cb-item"><input type="checkbox" value="kultur"> Kultur & evenemang</label>
+<label class="cb-item"><input type="checkbox" value="energi"> Energidelning</label>
+</div>
+</div>
+</div>
+<div class="modal-foot">
+<button class="btn-cancel" onclick="closeCreate()">Avbryt</button>
+<button class="btn-primary" id="btn-submit" onclick="submitCreate()">Publicera lanterna</button>
+</div>
+</div>
+</div>
+
+<!-- ─── Modal: Anmäl dig ──────────────────────────────────── -->
+<div class="overlay" id="join-overlay">
+<div class="modal" style="max-width: 420px;">
+<div class="modal-head">
+<h2 id="join-title">Anmäl dig</h2>
+<button class="modal-close" onclick="closeJoin()">×</button>
+</div>
+<div class="modal-body">
+<p id="join-desc" style="font-size: 0.84rem; color: var(--text-mid); margin-bottom: 1rem;"></p>
+<div class="form-group">
+<label class="form-label">Ditt namn</label>
+<input type="text" id="j-namn" placeholder="Förnamn Efternamn"/>
+</div>
+<div class="form-group">
+<label class="form-label">E-postadress <span>*</span></label>
+<input type="email" id="j-email" placeholder="du@exempel.se"/>
+</div>
+</div>
+<div class="modal-foot">
+<button class="btn-cancel" onclick="closeJoin()">Avbryt</button>
+<button class="btn-primary" id="btn-join-submit" onclick="submitJoin()">Anmäl mig</button>
+</div>
+</div>
+</div>
+
+<!-- ─── Toast ─────────────────────────────────────────────── -->
+<div class="toast" id="toast"></div>
+
+<!-- ─── Scripts ───────────────────────────────────────────── -->
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="js/map.js"></script>
+<script src="js/list.js"></script>
+<script src="js/create.js"></script>
+<script src="js/join.js"></script>
+<script src="js/app.js"></script>
+
+<script>
+let activeDrawer = null;
+
+function toggleDrawer(id) {
+  const drawer = document.getElementById('info-drawer');
+  const buttons = document.querySelectorAll('.info-link');
+
+  if (activeDrawer === id) {
+    closeDrawer();
+    return;
+  }
+
+  document.querySelectorAll('.drawer-content').forEach(el => el.style.display = 'none');
+  document.getElementById('drawer-' + id).style.display = 'flex';
+
+  buttons.forEach(b => b.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+
+  drawer.classList.add('open');
+  activeDrawer = id;
+}
+
+function closeDrawer() {
+  document.getElementById('info-drawer').classList.remove('open');
+  document.querySelectorAll('.info-link').forEach(b => b.classList.remove('active'));
+  activeDrawer = null;
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
+</script>
+
+</body>
+</html>
