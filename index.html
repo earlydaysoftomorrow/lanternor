@@ -21,8 +21,7 @@
       --TILE_W: 2000;
       --TILE_H: 823;
       --N_TILES: 6;
-      /* Viewport height for the panorama stage (px) */
-      --STAGE_H: 480px;
+
     }
 
     html, body { height: 100%; overflow-x: hidden; }
@@ -55,9 +54,8 @@
     #stage {
       position: relative;
       width: 100%;
-      height: var(--STAGE_H);
+      height: calc(100vh - var(--NAV_H));
       margin-top: var(--NAV_H);
-      overflow: hidden;
       cursor: grab;
       user-select: none;
       background: var(--sea);
@@ -263,8 +261,7 @@
     @media (max-width: 640px) {
       .nav-links { display: none; }
       .nav-hamburger { display: block; }
-      :root { --STAGE_H: 54vw; }
-      #below { grid-template-columns: 1fr; gap: 1.8rem; padding: 2.5rem 1.2rem; }
+#below { grid-template-columns: 1fr; gap: 1.8rem; padding: 2.5rem 1.2rem; }
     }
   </style>
 </head>
