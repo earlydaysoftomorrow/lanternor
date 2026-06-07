@@ -101,13 +101,16 @@
 
     .txt {
       position: absolute;
-      transform: translateX(-50%);
+      transform: translateX(-50%) translateY(14px);
       text-align: center;
       opacity: 0;
-      transition: opacity 0.7s ease, transform 0.7s ease;
+      transition: opacity 0.8s ease, transform 0.8s ease;
       pointer-events: none;
     }
-    .txt.visible { opacity: 1; }
+    .txt.visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
 
     /* Main hero title */
     .txt-hero {
@@ -316,7 +319,7 @@
            data-y="80"
            data-trigger="0"
            data-hide="2400">
-        <span class="overline">Egnahemsfabriken Tjörn</span>
+        <span class="overline">Välkommen till</span>
         <span class="main">TJÖRN</span>
         <span class="sub">Möjligheternas ö</span>
         <span class="caption">Energigemenskaper för omställning och beredskap</span>
