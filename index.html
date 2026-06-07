@@ -671,8 +671,8 @@ let dragStartOff  = 0;
 let velocity      = 0;       // px/frame
 let lastDragX     = 0;
 let lastDragT     = 0;
-const FRICTION    = 0.92;    // hur snabbt farten avtar (0.9=snabbt, 0.96=långsamt)
-const MIN_VEL     = 0.3;     // hastighet under vilken vi stannar
+const FRICTION    = 0.6;    // hur snabbt farten avtar (0.9=snabbt, 0.96=långsamt)
+const MIN_VEL     = 0.2;     // hastighet under vilken vi stannar
 
 const hint = document.getElementById('hint');
 
@@ -713,7 +713,7 @@ function startMomentum() {
 let wheelTarget = 0;
 function wheelLoop() {
   const dist = wheelTarget - currentOffset;
-  if (Math.abs(dist) < 0.4) {
+  if (Math.abs(dist) < 0.1) {
     applyOffset(wheelTarget);
     rafId = null;
     return;
