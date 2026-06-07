@@ -315,8 +315,8 @@
 
       <!-- Hero: appears right at the start, centered over Tjörnbron (del1, ~x=1000) -->
       <div class="txt txt-hero"
-           data-x="400"
-           data-y="80"
+           data-x="600"
+           data-y="100"
            data-trigger="0"
            data-hide="2400">
         <span class="overline">Välkommen till</span>
@@ -671,7 +671,7 @@ let dragStartOff  = 0;
 let velocity      = 0;       // px/frame
 let lastDragX     = 0;
 let lastDragT     = 0;
-const FRICTION    = 0.96;    // hur snabbt farten avtar (0.9=snabbt, 0.96=långsamt)
+const FRICTION    = 0.9;    // hur snabbt farten avtar (0.9=snabbt, 0.96=långsamt)
 const MIN_VEL     = 0.1;     // hastighet under vilken vi stannar
 
 const hint = document.getElementById('hint');
@@ -718,7 +718,7 @@ function wheelLoop() {
     rafId = null;
     return;
   }
-  applyOffset(currentOffset + dist * 0.1);
+  applyOffset(currentOffset + dist * 0.05);
   rafId = requestAnimationFrame(wheelLoop);
 }
 
