@@ -325,6 +325,24 @@
         <span class="caption">Energigemenskaper för omställning och beredskap</span>
       </div>
 
+
+  <!-- Appears soon after bridge (byn vid kusten, x≈4000–6000) -->
+      <div class="txt txt-section"
+           data-x="3000"
+           data-y="400"
+           data-trigger="3200"
+           data-hide="6800">
+        Energiförsörjningen är en <br><em>gemensam angelägenhet</em>
+      </div>
+
+   <div class="txt txt-section"
+           data-x="3600"
+           data-y="300"
+           data-trigger="3200"
+           data-hide="6800">
+        Vi kan lösa den <br><em>tillsammans</em>
+      </div>
+
       <!-- Appears over del3 (byn vid kusten, x≈4000–6000) -->
       <div class="txt txt-section"
            data-x="5000"
@@ -642,13 +660,19 @@ function updateProgress(offset) {
   progressFill.style.width = pct + '%';
 }
 
-/* ─── PANNING ──────────────────────────────────────────────────── */
+/* ─── PANNING med momentum/inertia ────────────────────────────── */
 let currentOffset = 0;
-let targetOffset  = 0;
 let rafId         = null;
 let dragging      = false;
 let dragStartX    = 0;
 let dragStartOff  = 0;
+
+/* Momentum — spårar hastighet för att glida ut mjukt vid release */
+let velocity      = 0;       // px/frame
+let lastDragX     = 0;
+let lastDragT     = 0;
+const FRICTION    = 0.92;    // hur snabbt farten avtar (0.9=snabbt, 0.96=långsamt)
+const MIN_VEL     = 0.3;     // hastighet under vilken vi stannar
 
 const hint = document.getElementById('hint');
 
@@ -661,75 +685,106 @@ function applyOffset(o) {
   updateText(currentOffset);
   updateProgress(currentOffset);
   if (currentOffset > 100) hint.classList.add('hidden');
-  // keep tooltip in sync
   if (tooltip.classList.contains('show')) {
     const active = pins.find(p => p.matches(':hover'));
     if (active) showTT(active, currentOffset);
   }
 }
 
-function lerp(a, b, t) { return a + (b - a) * t; }
-
-function animTo() {
-  currentOffset = lerp(currentOffset, targetOffset, 0.08);
-  applyOffset(currentOffset);
-  if (Math.abs(currentOffset - targetOffset) > 0.4) {
-    rafId = requestAnimationFrame(animTo);
-  } else {
-    applyOffset(targetOffset);
+function momentumLoop() {
+  velocity *= FRICTION;
+  if (Math.abs(velocity) < MIN_VEL) {
+    velocity = 0;
     rafId = null;
+    return;
   }
+  applyOffset(currentOffset + velocity);
+  /* Studsa mot kanterna */
+  if (currentOffset <= 0 || currentOffset >= maxOffset()) velocity = 0;
+  rafId = requestAnimationFrame(momentumLoop);
 }
 
-function setTarget(o) {
-  targetOffset = Math.max(0, Math.min(maxOffset(), o));
+function startMomentum() {
   if (rafId) cancelAnimationFrame(rafId);
-  rafId = requestAnimationFrame(animTo);
+  rafId = requestAnimationFrame(momentumLoop);
 }
+
+/* Wheel / trackpad — mjuk inertia via lerp mot rullande target */
+let wheelTarget = 0;
+function wheelLoop() {
+  const dist = wheelTarget - currentOffset;
+  if (Math.abs(dist) < 0.4) {
+    applyOffset(wheelTarget);
+    rafId = null;
+    return;
+  }
+  applyOffset(currentOffset + dist * 0.1);
+  rafId = requestAnimationFrame(wheelLoop);
+}
+
+stage.addEventListener('wheel', e => {
+  e.preventDefault();
+  wheelTarget = Math.max(0, Math.min(maxOffset(),
+    (rafId ? wheelTarget : currentOffset) + e.deltaX + e.deltaY * 0.8));
+  if (rafId) cancelAnimationFrame(rafId);
+  rafId = requestAnimationFrame(wheelLoop);
+}, { passive: false });
 
 /* Mouse drag */
 stage.addEventListener('mousedown', e => {
-  dragging = true;
+  dragging     = true;
   dragStartX   = e.clientX;
   dragStartOff = currentOffset;
-  stage.classList.add('is-dragging');
+  lastDragX    = e.clientX;
+  lastDragT    = performance.now();
+  velocity     = 0;
   if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+  stage.classList.add('is-dragging');
 });
 window.addEventListener('mousemove', e => {
   if (!dragging) return;
-  const dx = dragStartX - e.clientX;
-  applyOffset(dragStartOff + dx);
-  targetOffset = currentOffset;
+  const now = performance.now();
+  const dt  = Math.max(1, now - lastDragT);
+  velocity  = (lastDragX - e.clientX) / dt * 16; /* px per frame @60fps */
+  lastDragX = e.clientX;
+  lastDragT = now;
+  applyOffset(dragStartOff + (dragStartX - e.clientX));
 });
 window.addEventListener('mouseup', () => {
+  if (!dragging) return;
   dragging = false;
   stage.classList.remove('is-dragging');
+  startMomentum();
 });
 
-/* Wheel / trackpad */
-stage.addEventListener('wheel', e => {
-  e.preventDefault();
-  setTarget(targetOffset + e.deltaX + e.deltaY * 0.6);
-}, { passive: false });
-
 /* Touch */
-let touchX = 0, touchOff = 0;
+let touchX = 0, touchOff = 0, lastTouchX = 0, lastTouchT = 0;
 stage.addEventListener('touchstart', e => {
-  touchX   = e.touches[0].clientX;
-  touchOff = currentOffset;
+  touchX      = e.touches[0].clientX;
+  touchOff    = currentOffset;
+  lastTouchX  = touchX;
+  lastTouchT  = performance.now();
+  velocity    = 0;
   if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
 }, { passive: true });
 stage.addEventListener('touchmove', e => {
-  const dx = touchX - e.touches[0].clientX;
-  applyOffset(touchOff + dx);
-  targetOffset = currentOffset;
+  const now = performance.now();
+  const cx  = e.touches[0].clientX;
+  const dt  = Math.max(1, now - lastTouchT);
+  velocity  = (lastTouchX - cx) / dt * 16;
+  lastTouchX = cx;
+  lastTouchT = now;
+  applyOffset(touchOff + (touchX - cx));
 }, { passive: true });
+stage.addEventListener('touchend', () => {
+  startMomentum();
+});
 
 /* Keyboard */
 stage.addEventListener('keydown', e => {
-  const step = 300;
-  if (e.key === 'ArrowRight') setTarget(targetOffset + step);
-  if (e.key === 'ArrowLeft')  setTarget(targetOffset - step);
+  const step = 400;
+  if (e.key === 'ArrowRight') { velocity = 8;  startMomentum(); }
+  if (e.key === 'ArrowLeft')  { velocity = -8; startMomentum(); }
 });
 
 /* ─── RESIZE ───────────────────────────────────────────────────── */
